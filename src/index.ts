@@ -67,6 +67,8 @@ function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait }: Parti
     // This is a mapping of "path to CPP file" to "information about its compilation".
     //const mapOfThings = new Map<string, CppCompilationInfo>();
 
+    let allImports: Set<string> | null = null;
+    let unhandledImports: Set<string> | null = null;
 
     return {
         name: 'rollup-plugin-cpp', // this name will show up in logs and errors,
@@ -254,6 +256,16 @@ export {
             }
 
         },
+        renderStart() {
+
+            allImports = new Set<string>();
+            allExeUnits.executionUnitsById.forEach((i) => {
+                i.imports.forEach(i => {
+                    allImports!.add(i.base);
+                })
+            })
+            unhandledImports = new Set<string>([...allImports]);
+        },
         async renderChunk(code) {
 
             // This is where we take out the WASI imports we don't use
@@ -265,27 +277,15 @@ export {
             const s = new MagicString(code);
 
 
-            let allImports = new Set<string>();
-            allExeUnits.executionUnitsById.forEach((i) => {
-                i.imports.forEach(i => {
-                    allImports.add(i.base);
-                })
-            })
 
-            let unhandledImports = new Set<string>([...allImports]);
 
             s.replaceAll(R, (_whole, funcName) => {
-                if (allImports.has(funcName)) {
-                    unhandledImports.delete(funcName);
+                if (allImports!.has(funcName)) {
+                    unhandledImports!.delete(funcName);
                     return `\n\t${funcName},`;
                 }
                 return `\n\t/* Omitted ${funcName} */`
             });
-
-            if (unhandledImports.size) {
-                console.warn(`The following imports were unhandled and will likely cause errors at runtime`);
-                console.warn([...unhandledImports].join(", "));
-            }
 
 
             return {
@@ -294,6 +294,11 @@ export {
             }
         },
         async buildEnd() {
+
+            if (unhandledImports!.size) {
+                console.warn(`The following imports were unhandled and will likely cause errors at runtime`);
+                console.warn([...unhandledImports!].join(", "));
+            }
 
             // Write all the WASM modules
             await Promise.all([...allExeUnits.executionUnitsById].map(([_id, unit]) => { return unit.compile() }));

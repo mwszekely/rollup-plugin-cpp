@@ -465,6 +465,8 @@ function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait } = {}) 
     //let wasmFileInfo = new Map<number, { pathWasm: string; contentsWasm: ArrayBuffer; }>();
     // This is a mapping of "path to CPP file" to "information about its compilation".
     //const mapOfThings = new Map<string, CppCompilationInfo>();
+    let allImports = null;
+    let unhandledImports = null;
     return {
         name: 'rollup-plugin-cpp',
         async buildStart(opts) {
@@ -635,18 +637,20 @@ export {
                 });
             }
         },
-        async renderChunk(code) {
-            // This is where we take out the WASI imports we don't use
-            const R = /\s+((?:[a-z]|[0-9]|_)+),?\s+\/\*\*\s+__@WASM_IMPORT_OMITTABLE__\s+\*\*\//g;
-            // Still don't know if this is actually the best way to do this...?
-            const s = new MagicString(code);
-            let allImports = new Set();
+        renderStart() {
+            allImports = new Set();
             allExeUnits.executionUnitsById.forEach((i) => {
                 i.imports.forEach(i => {
                     allImports.add(i.base);
                 });
             });
-            let unhandledImports = new Set([...allImports]);
+            unhandledImports = new Set([...allImports]);
+        },
+        async renderChunk(code) {
+            // This is where we take out the WASI imports we don't use
+            const R = /\s+((?:[a-z]|[0-9]|_)+),?\s+\/\*\*\s+__@WASM_IMPORT_OMITTABLE__\s+\*\*\//g;
+            // Still don't know if this is actually the best way to do this...?
+            const s = new MagicString(code);
             s.replaceAll(R, (_whole, funcName) => {
                 if (allImports.has(funcName)) {
                     unhandledImports.delete(funcName);
@@ -654,16 +658,16 @@ export {
                 }
                 return `\n\t/* Omitted ${funcName} */`;
             });
-            if (unhandledImports.size) {
-                console.warn(`The following imports were unhandled and will likely cause errors at runtime`);
-                console.warn([...unhandledImports].join(", "));
-            }
             return {
                 code: s.toString(),
                 map: s.generateMap({ hires: true }), // ??? https://stackoverflow.com/questions/76186660/how-to-use-magicstring-to-provide-a-sourcemap-with-rollups-renderchunk-hook
             };
         },
         async buildEnd() {
+            if (unhandledImports.size) {
+                console.warn(`The following imports were unhandled and will likely cause errors at runtime`);
+                console.warn([...unhandledImports].join(", "));
+            }
             // Write all the WASM modules
             await Promise.all([...allExeUnits.executionUnitsById].map(([_id, unit]) => { return unit.compile(); }));
         },
