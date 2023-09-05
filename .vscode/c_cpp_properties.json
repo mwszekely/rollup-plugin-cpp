@@ -1,7 +1,8 @@
 {
     "configurations": [
         {
-            "name": "Win32",
+            // 
+            "name": "WebAssembly",
             "includePath": [
                 "${workspaceFolder}/**",
                 "../emsdk/upstream/emscripten/system/include"

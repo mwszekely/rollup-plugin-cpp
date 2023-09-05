@@ -74,6 +74,8 @@ import { foo as foo2 } from "./foo.cpp?exe=mod2";
 ```
 But it ruins Typescript's delicate wildcard module system that'll [hopefully improve at some point](https://github.com/microsoft/TypeScript/issues/38638)?
 
+
+
 ## Why.
 
 Because I'm surprised I couldn't find something like this already. I figure there must be some inherent reason that something like this *shouldn't* exist and I'm on a quest to find it.
@@ -84,3 +86,26 @@ This is my list of Bad Consequences™ so far:
 2. You gotta import every `.cpp` or `.c` source file individually. It's a bit of a pain but the linker will optimize out whatever isn't used, so it doesn't cause any bloat (aside from global/`static`/`thread_local` variables).
 3. Bundling Javascript code is already on the sluggish side, and now we've gotta throw in C++ code compilation and optimization... Be sure to use watch mode as appropriate.
 4. C/C++ code is already notoriously finnicky to compile, so by not providing the pre-compiled WASM binary it's just another "it works fine on my machine" waiting to happen.
+
+## Visual Studio Code
+
+To avoid the annoying red squiggles and actually have code completion in C++ files, make sure you have Emscripten in your include paths. You may also need to set `intelliSenseMode` and the various C++ standards flags.
+
+`.vscode/c_cpp_properties.json`:
+```json
+{
+    "configurations": [
+        {
+            [...]
+            "includePath": [
+                [...],
+                "../emsdk/upstream/emscripten/system/include",
+                [...],
+            ],
+            "intelliSenseMode": "clang-x86",
+            [...]
+        }
+    ],
+    "version": 4
+}
+```

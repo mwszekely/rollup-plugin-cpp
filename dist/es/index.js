@@ -354,12 +354,12 @@ class ExecutionUnit {
                 ret.contents = newContents;
                 //}
             }
-            await ret.resolveIncludes(addWatchFile);
         }
         catch (ex) {
             console.error(`A JS file imported a C++ file that does not exist: ${path}`);
             throw ex;
         }
+        await ret.resolveIncludes(addWatchFile);
     }
 }
 class CppSourceFile {
