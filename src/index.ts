@@ -125,16 +125,21 @@ function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait }: Parti
 
             if (id.startsWith(VMOD_THAT_EXPORTS_WASI_FUNCTIONS)) {
 
-                const knownWasi = ["proc_exit", "fd_write", "fd_close", "fd_seek", "fd_read", "environ_sizes_get", "environ_get", "__throw_exception_with_stack_trace"];
+                const knownWasi = ["proc_exit", "fd_write", "fd_close", "fd_seek", "fd_read", "environ_sizes_get", "environ_get"];
+                const knownEnv = ["__throw_exception_with_stack_trace"];
 
                 return `
 import {
-${knownWasi.map(fname => `\t${fname}`).join(",\n")}
+${[...knownWasi, ...knownEnv].map(fname => `\t${fname}`).join(",\n")}
 } from ${JSON.stringify(wasiLib)};
 
 export default {
-${knownWasi.map(fname => `\t${fname},\t\t/** __@WASM_IMPORT_OMITTABLE__ **/`).join("\n")}
-}
+	wasi_snapshot_preview1: {
+${knownWasi.map(fname => `\t\t${fname}, \t \t /** __@WASM_IMPORT_OMITTABLE__ **/`).join("\n")}
+	},
+	env: {
+${knownEnv.map(fname => `\t\t${fname}, \t \t /** __@WASM_IMPORT_OMITTABLE__ **/`).join("\n")}
+	}
 `
             }
 
@@ -147,7 +152,7 @@ ${knownWasi.map(fname => `\t${fname},\t\t/** __@WASM_IMPORT_OMITTABLE__ **/`).jo
                     `
 // Import the WASM file from an external file, and wait on its response
 import wasmResponse from ${JSON.stringify(`datafile:~/modules/${executionUnit.uniqueId}.wasm`)};
-import wasi_snapshot_preview1 from ${JSON.stringify(VMOD_THAT_EXPORTS_WASI_FUNCTIONS + executionUnit.uniqueId)}
+import wasi from ${JSON.stringify(VMOD_THAT_EXPORTS_WASI_FUNCTIONS + executionUnit.uniqueId)}
 import { instantiateWasi } from "basic-event-wasi"
 
 let instantiated = false;
@@ -171,7 +176,7 @@ const { promise, resolve, reject } = Promise.withResolvers();
 async function untilReady() {
     if (!instantiated) {
         instantiated = true;
-        const { wasiReady, imports } = instantiateWasi(promise, wasi_snapshot_preview1);
+        const { wasiReady, imports } = instantiateWasi(promise, wasi);
         let resolved;
         if (globalThis.Response && wasmResponse instanceof globalThis.Response)
             resolved = await WebAssembly.instantiateStreaming(wasmResponse, { ...imports });
