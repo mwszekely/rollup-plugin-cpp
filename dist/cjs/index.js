@@ -538,7 +538,7 @@ ${knownWasi.map(fname => `\t${fname},\t\t/** __@WASM_IMPORT_OMITTABLE__ **/`).jo
                 // and I honestly have no clue how to normalize that in Node.
                 return (`
 // Import the WASM file from an external file, and wait on its response
-import wasmResponse from ${JSON.stringify(`datafile:~/modules/${executionUnit.uniqueId}.wasm?mode=response`)};
+import wasmResponse from ${JSON.stringify(`datafile:~/modules/${executionUnit.uniqueId}.wasm`)};
 import wasi_snapshot_preview1 from ${JSON.stringify(VMOD_THAT_EXPORTS_WASI_FUNCTIONS + executionUnit.uniqueId)}
 import { instantiateWasi } from "basic-event-wasi"
 
@@ -563,8 +563,12 @@ const { promise, resolve, reject } = Promise.withResolvers();
 async function untilReady() {
     if (!instantiated) {
         instantiated = true;
-        const { wasiReady, imports } = instantiateWasi(promise, wasi_snapshot_preview1)
-        let resolved = await WebAssembly.instantiateStreaming(wasmResponse, { ...imports });
+        const { wasiReady, imports } = instantiateWasi(promise, wasi_snapshot_preview1);
+        let resolved;
+        if (globalThis.Response && wasmResponse instanceof globalThis.Response)
+            resolved = await WebAssembly.instantiateStreaming(wasmResponse, { ...imports });
+        else
+            resolved = await WebAssembly.instantiate(wasmResponse, { ...imports });
 
         resolve(resolved);
         await wasiReady;
