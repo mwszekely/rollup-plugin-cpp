@@ -586,9 +586,9 @@ async function untilReady() {
         allExports._initialize();
     }
 }
-${useTopLevelAwait ? "" : `
+${useTopLevelAwait ? `
 await untilReady();
-`}
+` : ""}
 export { allExports, memory, instance, module, untilReady };
 `);
             }
