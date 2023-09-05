@@ -5,7 +5,7 @@
   "main": "./dist/cjs/index.js",
   "module": "./dist/es/index.js",
   "types": "./types/index.d.ts",
-  "type": "commonjs",
+  "type": "module",
   "exports": {
     "types": "./types/index.d.ts",
     "import": "./dist/es/index.js",

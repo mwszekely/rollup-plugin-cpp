@@ -1,4 +1,4 @@
-/// <reference types="node" />
+/// <reference types="node" resolution-mode="require"/>
 import type { Plugin, RollupOptions } from "rollup";
 export declare function readFile(path: string, mode: "string"): Promise<string>;
 export declare function readFile(path: string, mode: "binary"): Promise<Buffer>;

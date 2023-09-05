@@ -18,8 +18,8 @@
 
     "allowSyntheticDefaultImports": true,
     "lib": ["ES6", "ES2021.String", "DOM"],
-    "module": "ESNext",
-    "moduleResolution": "node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "pretty": true,

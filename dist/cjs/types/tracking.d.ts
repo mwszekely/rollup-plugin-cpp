@@ -6,7 +6,9 @@ export declare class ExecutionUnits {
     inputOptions: RollupOptions;
     buildMode: "debug" | "release";
     compilerOptions: {
+        defaultExeName: string;
         includePaths: string[];
+        memorySizes: Partial<Record<string, number>>;
     };
     executionUnitsByName: Map<string, ExecutionUnit>;
     cppFilesById: Map<number, CppSourceFile>;
@@ -17,7 +19,9 @@ export declare class ExecutionUnits {
     exeUniqueIdCounter: number;
     wasmUniqueIdCounter: number;
     constructor(inputOptions: RollupOptions, buildMode: "debug" | "release", compilerOptions: {
+        defaultExeName: string;
         includePaths: string[];
+        memorySizes: Partial<Record<string, number>>;
     });
     getByUrl(path: string): ExecutionUnit;
     getById(id: `${typeof HELPER_IMPORT_FINAL_WASM_0}${number}` | number): ExecutionUnit;
@@ -28,6 +32,7 @@ export declare class ExecutionUnits {
 export declare class ExecutionUnit {
     parent: ExecutionUnits;
     key: string;
+    memorySize: number;
     private cppFilesByPath;
     private cppFilesById;
     cppFilesByHeaderPath: Map<string, Set<CppSourceFile>>;
@@ -39,7 +44,7 @@ export declare class ExecutionUnit {
     private onWriteResolve;
     onWritePromise: Promise<void>;
     private onWriteReject;
-    constructor(parent: ExecutionUnits, key: string);
+    constructor(parent: ExecutionUnits, key: string, memorySize: number);
     imports: Array<{
         module: string;
         base: string;
@@ -54,6 +59,7 @@ export declare class ExecutionUnit {
      */
     addImportFromJs(str: string): void;
     get includePathsAsArgument(): string;
+    get finalFilePath(): string;
     /**
      * Does a few things:
      *

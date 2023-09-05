@@ -22,7 +22,7 @@ import myExample from "../dist/es/index.js";
         plugins: [
             (typescript as any)(),
             (resolve as any)(),
-            myExample({ useTopLevelAwait: false, includePaths: ["C:/Users/Matt/Documents/GitHub/wasm/demo/src/core/src"], buildMode: undefined, wasiLib: undefined }),
+            myExample({ useTopLevelAwait: false, includePaths: ["C:/Users/Matt/Documents/GitHub/wasm/demo/src/core/src"], buildMode: undefined, wasiLib: undefined, memorySizes: {}, defaultExeName: undefined }),
             (datafile as any)({ fileTypes: { ".wasm": { location: "asset" } } }),
             //wasmPlugin()
         ]

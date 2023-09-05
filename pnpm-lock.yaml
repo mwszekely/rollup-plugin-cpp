@@ -31,7 +31,7 @@ dependencies:
     version: 0.30.3
   map-and-set-extensions:
     specifier: github:mwszekely/map-and-set-extensions
-    version: github.com/mwszekely/map-and-set-extensions/2e76da9cceee046d57d83eaacf46e602a97a9f63
+    version: github.com/mwszekely/map-and-set-extensions/ff68a36e0f4a700fd6612ee30cca86855891f623
   rollup:
     specifier: ^3.28.0
     version: 3.28.1
@@ -923,10 +923,12 @@ packages:
       typescript: 5.2.2
     dev: false
 
-  github.com/mwszekely/map-and-set-extensions/2e76da9cceee046d57d83eaacf46e602a97a9f63:
-    resolution: {tarball: https://codeload.github.com/mwszekely/map-and-set-extensions/tar.gz/2e76da9cceee046d57d83eaacf46e602a97a9f63}
+  github.com/mwszekely/map-and-set-extensions/ff68a36e0f4a700fd6612ee30cca86855891f623:
+    resolution: {tarball: https://codeload.github.com/mwszekely/map-and-set-extensions/tar.gz/ff68a36e0f4a700fd6612ee30cca86855891f623}
     name: map-and-set-extensions
     version: 1.0.0
+    dependencies:
+      tslib: 2.6.2
     dev: false
 
   github.com/mwszekely/rollup-plugin-data/974a46be9e18ff04fdc37ff7d804d92e02d2f8ad(rollup@3.28.1):

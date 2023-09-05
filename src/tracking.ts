@@ -28,10 +28,12 @@ export class ExecutionUnits {
     exeUniqueIdCounter = 0;
     wasmUniqueIdCounter = 0;
 
-    constructor(public inputOptions: RollupOptions, public buildMode: "debug" | "release", public compilerOptions: { includePaths: string[] }) { }
+    constructor(public inputOptions: RollupOptions, public buildMode: "debug" | "release", public compilerOptions: { defaultExeName: string, includePaths: string[], memorySizes: Partial<Record<string, number>> }) {
+
+    }
     getByUrl(path: string): ExecutionUnit {
         if (path.includes(".c")) {
-            let exeUnitName = "default";
+            let exeUnitName = this.compilerOptions.defaultExeName || "default";
             let url: URL | undefined;
             try {
                 url = new URL(`ext:${path}`);
@@ -58,7 +60,7 @@ export class ExecutionUnits {
     }
     getByName(exe: string) {
         if (!this.executionUnitsByName.has(exe))
-            this.executionUnitsByName.set(exe, new ExecutionUnit(this, exe));
+            this.executionUnitsByName.set(exe, new ExecutionUnit(this, exe, this.compilerOptions.memorySizes[exe] || 0x1_00_00_00));
         return this.executionUnitsByName.get(exe)!;
     }
 
@@ -107,7 +109,7 @@ export class ExecutionUnit {
     private onWriteResolve!: () => void;
     onWritePromise: Promise<void>;
     private onWriteReject!: (e: any) => void;
-    constructor(public parent: ExecutionUnits, public key: string) {
+    constructor(public parent: ExecutionUnits, public key: string, public memorySize: number) {
         this.uniqueId = this.parent.exeUniqueIdCounter++;
         this.parent.executionUnitsById.set(this.uniqueId, this);
 
@@ -137,6 +139,8 @@ export class ExecutionUnit {
         return this.parent.compilerOptions.includePaths.map(includePath => `-I "${includePath}"`).join(" ")
     }
 
+    get finalFilePath() { return `modules/${this.key}.wasm` }
+
     /**
      * Does a few things:
      * 
@@ -148,17 +152,16 @@ export class ExecutionUnit {
      * @returns 
      */
     async compile() {
-        const finalFilePath = `modules/${this.uniqueId}.wasm`;
-        await mkdir(dirname(finalFilePath), { recursive: true });
+        await mkdir(dirname(this.finalFilePath), { recursive: true });
         let projectDir = cwd();
-        const finalTempPath = relative(projectDir, finalFilePath);
+        const finalTempPath = relative(projectDir, this.finalFilePath);
 
 
         const argsExportedFunctions =
             this.importsFromJs == null ? "-sLINKABLE=1 -sEXPORT_ALL=2" :
                 (this.importsFromJs.size ? `-sEXPORTED_FUNCTIONS=${[...this.importsFromJs].map(i => `_${i}`).join(",")}` : "");
 
-        let argsShared = "--no-entry -std=c++20 -fwasm-exceptions"; // -sSTANDALONE_WASM=1  // -sMINIMAL_RUNTIME=2
+        let argsShared = "--no-entry -std=c++20 -fwasm-exceptions -sALLOW_MEMORY_GROWTH=1"; // -sSTANDALONE_WASM=1  // -sMINIMAL_RUNTIME=2
         let argsDebug = `-g -gdwarf-4 -gsource-map`;
         let argsRelease = `-flto -O3`;
 
@@ -320,7 +323,7 @@ export class ExecutionUnit {
             throw ex;
         }
 
-        
+
         await ret.resolveIncludes(addWatchFile);
     }
 

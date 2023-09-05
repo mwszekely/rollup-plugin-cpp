@@ -29,7 +29,7 @@
     	return await decodeAssetShared(response, r => r, response);
     }
 
-    const data = decodeAssetResponse(fetch("assets/0.wasm"));
+    const data = decodeAssetResponse(fetch("assets/default.wasm"));
 
     function environ_get(environCountOutput, environSizeOutput) {
         this.writeUint32(environCountOutput, 0);
@@ -421,24 +421,24 @@
     // Call this to wait until the wasmResponse has been fetched, parsed, and instantiated
     // and, more importantly, allExports, module, and instance will have values.
     async function untilReady() {
-        if (!instantiated) {
-            instantiated = true;
-            const { wasiReady, imports } = instantiateWasi(promise, wasi);
-            let resolved;
-            if (globalThis.Response && data instanceof globalThis.Response)
-                resolved = await WebAssembly.instantiateStreaming(data, { ...imports });
-            else
-                resolved = await WebAssembly.instantiate(data, { ...imports });
+    	if (!instantiated) {
+    		instantiated = true;
+    		const { wasiReady, imports } = instantiateWasi(promise, wasi);
+    		let resolved;
+    		if (globalThis.Response && data instanceof globalThis.Response)
+    			resolved = await WebAssembly.instantiateStreaming(data, { ...imports });
+    		else
+    			resolved = await WebAssembly.instantiate(data, { ...imports });
 
-            resolve(resolved);
-            await wasiReady;
-            
-            resolved.module;
-            resolved.instance;
-            allExports = resolved.instance.exports;
-            memory = allExports.memory;
-            allExports._initialize();
-        }
+    		resolve(resolved);
+    		await wasiReady;
+
+    		resolved.module;
+    		resolved.instance;
+    		allExports = resolved.instance.exports;
+    		memory = allExports.memory;
+    		allExports._initialize();
+    	}
     }
 
     const utf16Decoder = new TextDecoder("utf-16");

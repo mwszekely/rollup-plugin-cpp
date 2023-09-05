@@ -120,7 +120,7 @@ class ExecutionUnits {
     }
     getByUrl(path) {
         if (path.includes(".c")) {
-            let exeUnitName = "default";
+            let exeUnitName = this.compilerOptions.defaultExeName || "default";
             let url;
             try {
                 url = new URL(`ext:${path}`);
@@ -145,7 +145,7 @@ class ExecutionUnits {
     }
     getByName(exe) {
         if (!this.executionUnitsByName.has(exe))
-            this.executionUnitsByName.set(exe, new ExecutionUnit(this, exe));
+            this.executionUnitsByName.set(exe, new ExecutionUnit(this, exe, this.compilerOptions.memorySizes[exe] || 16777216));
         return this.executionUnitsByName.get(exe);
     }
     getCppFileById(id) {
@@ -176,9 +176,10 @@ class ExecutionUnits {
     }
 }
 class ExecutionUnit {
-    constructor(parent, key) {
+    constructor(parent, key, memorySize) {
         this.parent = parent;
         this.key = key;
+        this.memorySize = memorySize;
         this.cppFilesByPath = new Map();
         this.cppFilesById = new Map();
         this.cppFilesByHeaderPath = new Map();
@@ -208,6 +209,7 @@ class ExecutionUnit {
     get includePathsAsArgument() {
         return this.parent.compilerOptions.includePaths.map(includePath => `-I "${includePath}"`).join(" ");
     }
+    get finalFilePath() { return `modules/${this.key}.wasm`; }
     /**
      * Does a few things:
      *
@@ -219,13 +221,12 @@ class ExecutionUnit {
      * @returns
      */
     async compile() {
-        const finalFilePath = `modules/${this.uniqueId}.wasm`;
-        await mkdir(dirname(finalFilePath), { recursive: true });
+        await mkdir(dirname(this.finalFilePath), { recursive: true });
         let projectDir = cwd();
-        const finalTempPath = relative(projectDir, finalFilePath);
+        const finalTempPath = relative(projectDir, this.finalFilePath);
         const argsExportedFunctions = this.importsFromJs == null ? "-sLINKABLE=1 -sEXPORT_ALL=2" :
             (this.importsFromJs.size ? `-sEXPORTED_FUNCTIONS=${[...this.importsFromJs].map(i => `_${i}`).join(",")}` : "");
-        let argsShared = "--no-entry -std=c++20 -fwasm-exceptions"; // -sSTANDALONE_WASM=1  // -sMINIMAL_RUNTIME=2
+        let argsShared = "--no-entry -std=c++20 -fwasm-exceptions -sALLOW_MEMORY_GROWTH=1"; // -sSTANDALONE_WASM=1  // -sMINIMAL_RUNTIME=2
         let argsDebug = `-g -gdwarf-4 -gsource-map`;
         let argsRelease = `-flto -O3`;
         const finalArgs = [
@@ -449,7 +450,8 @@ const VMOD_THAT_EXPORTS_WASI_FUNCTIONS = `\0C++_PLUGIN_WASI_`;
  * It's responsible for importing and instantiating the WASM module from its URL.
  */
 const WASM_LOADER = `\0C++_PLUGIN_WASM_`;
-function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait } = {}) {
+function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait, memorySizes, defaultExeName } = {}) {
+    memorySizes !== null && memorySizes !== void 0 ? memorySizes : (memorySizes = {});
     includePaths || (includePaths = []);
     wasiLib || (wasiLib = "basic-event-wasi");
     buildMode || (buildMode = "release");
@@ -471,7 +473,7 @@ function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait } = {}) 
         name: 'rollup-plugin-cpp',
         async buildStart(opts) {
             options = opts;
-            allExeUnits !== null && allExeUnits !== void 0 ? allExeUnits : (allExeUnits = new ExecutionUnits(opts, buildMode, { includePaths: includePaths }));
+            allExeUnits !== null && allExeUnits !== void 0 ? allExeUnits : (allExeUnits = new ExecutionUnits(opts, buildMode, { includePaths: includePaths, memorySizes: memorySizes, defaultExeName: defaultExeName || "default" }));
             allExeUnits.inputOptions = opts;
             //await mkdir(join(projectDir, "modules"), { recursive: true });
             await mkdir(join(projectDir, "temp"), { recursive: true });
@@ -540,7 +542,7 @@ ${knownEnv.map(fname => `\t\t${fname}, \t \t /** __@WASM_IMPORT_OMITTABLE__ **/`
                 // and I honestly have no clue how to normalize that in Node.
                 return (`
 // Import the WASM file from an external file, and wait on its response
-import wasmResponse from ${JSON.stringify(`datafile:~/modules/${executionUnit.uniqueId}.wasm`)};
+import wasmResponse from ${JSON.stringify(`datafile:~/${executionUnit.finalFilePath}`)};
 import wasi from ${JSON.stringify(VMOD_THAT_EXPORTS_WASI_FUNCTIONS + executionUnit.uniqueId)}
 import { instantiateWasi } from "basic-event-wasi"
 
@@ -563,29 +565,59 @@ const { promise, resolve, reject } = Promise.withResolvers();
 // Call this to wait until the wasmResponse has been fetched, parsed, and instantiated
 // and, more importantly, allExports, module, and instance will have values.
 async function untilReady() {
-    if (!instantiated) {
-        instantiated = true;
-        const { wasiReady, imports } = instantiateWasi(promise, wasi);
-        let resolved;
-        if (globalThis.Response && wasmResponse instanceof globalThis.Response)
-            resolved = await WebAssembly.instantiateStreaming(wasmResponse, { ...imports });
-        else
-            resolved = await WebAssembly.instantiate(wasmResponse, { ...imports });
+	if (!instantiated) {
+		instantiated = true;
+		const { wasiReady, imports } = instantiateWasi(promise, wasi);
+		let resolved;
+		if (globalThis.Response && wasmResponse instanceof globalThis.Response)
+			resolved = await WebAssembly.instantiateStreaming(wasmResponse, { ...imports });
+		else
+			resolved = await WebAssembly.instantiate(wasmResponse, { ...imports });
 
-        resolve(resolved);
-        await wasiReady;
-        
-        module = resolved.module;
-        instance = resolved.instance;
-        allExports = resolved.instance.exports;
-        memory = allExports.memory;
-        allExports._initialize();
-    }
+		resolve(resolved);
+		await wasiReady;
+
+		module = resolved.module;
+		instance = resolved.instance;
+		allExports = resolved.instance.exports;
+		memory = allExports.memory;
+		allExports._initialize();
+	}
 }
+
+function getHeap() { return memory.buffer; }
+function getHeapI8() { return new Int8Array(memory.buffer); }
+function getHeapU8() { return new Uint8Array(memory.buffer); }
+function getHeapI16() { return new Int16Array(memory.buffer); }
+function getHeapU16() { return new Uint16Array(memory.buffer); }
+function getHeapI32() { return new Int32Array(memory.buffer); }
+function getHeapU32() { return new Uint32Array(memory.buffer); }
+function getHeapI64() { return new Int64Array(memory.buffer); }
+function getHeapU64() { return new Uint64Array(memory.buffer); }
+function getHeapF32() { return new Float32Array(memory.buffer); }
+function getHeapF64() { return new Float64Array(memory.buffer); }
+
 ${useTopLevelAwait ? `
 await untilReady();
 ` : ""}
-export { allExports, memory, instance, module, untilReady };
+export { 
+	allExports, 
+	memory, 
+	instance, 
+	module, 
+	untilReady,
+	getHeap,
+	getHeapI8,
+	getHeapU8,
+	getHeapI16,
+	getHeapU16,
+	getHeapI32,
+	getHeapU32,
+	getHeapI64,
+	getHeapU64,
+	getHeapF32,
+	getHeapF64
+};
 `);
             }
             return filter(allExeUnits, id, async (executionUnit) => {
@@ -603,12 +635,24 @@ export { allExports, memory, instance, module, untilReady };
                     //code: `export * from ${JSON.stringify(HELPER_IMPORT_WASM_ + cppFile.wasm!.uniqueId)}`,
                     code: `
 export { 
-    module as __module, 
-    memory as __memory, 
-    instance as __instance, 
-    untilReady as __untilReady, 
-    allExports as __allExports,
-    allExports as ${SyntheticModuleName}${executionUnit.uniqueId}
+	allExports as __allExports, 
+	memory as __memory, 
+	instance as __instance, 
+	module as __module, 
+	untilReady as __untilReady,
+
+	getHeap as __getHeap,
+	getHeapI8 as __getHeapI8,
+	getHeapU8 as __getHeapU8,
+	getHeapI16 as __getHeapI16,
+	getHeapU16 as __getHeapU16,
+	getHeapI32 as __getHeapI32,
+	getHeapU32 as __getHeapU32,
+	getHeapI64 as __getHeapI64,
+	getHeapU64 as __getHeapU64,
+	getHeapF32 as __getHeapF32,
+	getHeapF64 as __getHeapF64,
+	allExports as ${SyntheticModuleName}${executionUnit.uniqueId}
 } from ${JSON.stringify(WASM_LOADER + executionUnit.uniqueId)}
 `,
                     moduleSideEffects: true
@@ -687,5 +731,5 @@ export {
     };
 }
 
-export { pluginCpp as default };
+export { pluginCpp as default, pluginCpp };
 //# sourceMappingURL=index.js.map

@@ -37,7 +37,11 @@ const WASM_LOADER = `\0C++_PLUGIN_WASM_`;
 
 export interface PluginCppOptions {
 
+    defaultExeName?: string;
+
     includePaths?: string[];
+
+    memorySizes?: Partial<Record<string, number>>;
 
     buildMode?: "debug" | "release";
 
@@ -46,7 +50,8 @@ export interface PluginCppOptions {
     useTopLevelAwait?: boolean;
 }
 
-function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait }: Partial<PluginCppOptions> = {}): InputPluginOption {
+function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait, memorySizes, defaultExeName }: Partial<PluginCppOptions> = {}): InputPluginOption {
+    memorySizes ??= {};
     includePaths ||= [];
     wasiLib ||= "basic-event-wasi";
     buildMode ||= "release";
@@ -74,7 +79,7 @@ function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait }: Parti
         name: 'rollup-plugin-cpp', // this name will show up in logs and errors,
         async buildStart(opts) {
             options = opts;
-            allExeUnits ??= new ExecutionUnits(opts, buildMode!, { includePaths: includePaths! });
+            allExeUnits ??= new ExecutionUnits(opts, buildMode!, { includePaths: includePaths!, memorySizes: memorySizes!, defaultExeName: defaultExeName || "default" });
             allExeUnits.inputOptions = opts;
             //await mkdir(join(projectDir, "modules"), { recursive: true });
             await mkdir(join(projectDir, "temp"), { recursive: true });
@@ -152,7 +157,7 @@ ${knownEnv.map(fname => `\t\t${fname}, \t \t /** __@WASM_IMPORT_OMITTABLE__ **/`
                 return (
                     `
 // Import the WASM file from an external file, and wait on its response
-import wasmResponse from ${JSON.stringify(`datafile:~/modules/${executionUnit.uniqueId}.wasm`)};
+import wasmResponse from ${JSON.stringify(`datafile:~/${executionUnit.finalFilePath}`)};
 import wasi from ${JSON.stringify(VMOD_THAT_EXPORTS_WASI_FUNCTIONS + executionUnit.uniqueId)}
 import { instantiateWasi } from "basic-event-wasi"
 
@@ -175,29 +180,59 @@ const { promise, resolve, reject } = Promise.withResolvers();
 // Call this to wait until the wasmResponse has been fetched, parsed, and instantiated
 // and, more importantly, allExports, module, and instance will have values.
 async function untilReady() {
-    if (!instantiated) {
-        instantiated = true;
-        const { wasiReady, imports } = instantiateWasi(promise, wasi);
-        let resolved;
-        if (globalThis.Response && wasmResponse instanceof globalThis.Response)
-            resolved = await WebAssembly.instantiateStreaming(wasmResponse, { ...imports });
-        else
-            resolved = await WebAssembly.instantiate(wasmResponse, { ...imports });
+	if (!instantiated) {
+		instantiated = true;
+		const { wasiReady, imports } = instantiateWasi(promise, wasi);
+		let resolved;
+		if (globalThis.Response && wasmResponse instanceof globalThis.Response)
+			resolved = await WebAssembly.instantiateStreaming(wasmResponse, { ...imports });
+		else
+			resolved = await WebAssembly.instantiate(wasmResponse, { ...imports });
 
-        resolve(resolved);
-        await wasiReady;
-        
-        module = resolved.module;
-        instance = resolved.instance;
-        allExports = resolved.instance.exports;
-        memory = allExports.memory;
-        allExports._initialize();
-    }
+		resolve(resolved);
+		await wasiReady;
+
+		module = resolved.module;
+		instance = resolved.instance;
+		allExports = resolved.instance.exports;
+		memory = allExports.memory;
+		allExports._initialize();
+	}
 }
+
+function getHeap() { return memory.buffer; }
+function getHeapI8() { return new Int8Array(memory.buffer); }
+function getHeapU8() { return new Uint8Array(memory.buffer); }
+function getHeapI16() { return new Int16Array(memory.buffer); }
+function getHeapU16() { return new Uint16Array(memory.buffer); }
+function getHeapI32() { return new Int32Array(memory.buffer); }
+function getHeapU32() { return new Uint32Array(memory.buffer); }
+function getHeapI64() { return new Int64Array(memory.buffer); }
+function getHeapU64() { return new Uint64Array(memory.buffer); }
+function getHeapF32() { return new Float32Array(memory.buffer); }
+function getHeapF64() { return new Float64Array(memory.buffer); }
+
 ${useTopLevelAwait? `
 await untilReady();
 ` : ""}
-export { allExports, memory, instance, module, untilReady };
+export { 
+	allExports, 
+	memory, 
+	instance, 
+	module, 
+	untilReady,
+	getHeap,
+	getHeapI8,
+	getHeapU8,
+	getHeapI16,
+	getHeapU16,
+	getHeapI32,
+	getHeapU32,
+	getHeapI64,
+	getHeapU64,
+	getHeapF32,
+	getHeapF64
+};
 `
                 );
             }
@@ -219,12 +254,24 @@ export { allExports, memory, instance, module, untilReady };
                     //code: `export * from ${JSON.stringify(HELPER_IMPORT_WASM_ + cppFile.wasm!.uniqueId)}`,
                     code: `
 export { 
-    module as __module, 
-    memory as __memory, 
-    instance as __instance, 
-    untilReady as __untilReady, 
-    allExports as __allExports,
-    allExports as ${SyntheticModuleName}${executionUnit.uniqueId}
+	allExports as __allExports, 
+	memory as __memory, 
+	instance as __instance, 
+	module as __module, 
+	untilReady as __untilReady,
+
+	getHeap as __getHeap,
+	getHeapI8 as __getHeapI8,
+	getHeapU8 as __getHeapU8,
+	getHeapI16 as __getHeapI16,
+	getHeapU16 as __getHeapU16,
+	getHeapI32 as __getHeapI32,
+	getHeapU32 as __getHeapU32,
+	getHeapI64 as __getHeapI64,
+	getHeapU64 as __getHeapU64,
+	getHeapF32 as __getHeapF32,
+	getHeapF64 as __getHeapF64,
+	allExports as ${SyntheticModuleName}${executionUnit.uniqueId}
 } from ${JSON.stringify(WASM_LOADER + executionUnit.uniqueId)}
 `,
                     moduleSideEffects: true
@@ -380,3 +427,5 @@ interface Literal {
 
 
 export default pluginCpp;
+export { pluginCpp };
+
