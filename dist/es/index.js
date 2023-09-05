@@ -663,11 +663,13 @@ export {
                 map: s.generateMap({ hires: true }), // ??? https://stackoverflow.com/questions/76186660/how-to-use-magicstring-to-provide-a-sourcemap-with-rollups-renderchunk-hook
             };
         },
-        async buildEnd() {
+        generateBundle() {
             if (unhandledImports.size) {
                 console.warn(`The following imports were unhandled and will likely cause errors at runtime`);
                 console.warn([...unhandledImports].join(", "));
             }
+        },
+        async buildEnd() {
             // Write all the WASM modules
             await Promise.all([...allExeUnits.executionUnitsById].map(([_id, unit]) => { return unit.compile(); }));
         },
