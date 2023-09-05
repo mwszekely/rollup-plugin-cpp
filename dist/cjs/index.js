@@ -520,7 +520,7 @@ function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait } = {}) 
         },
         async load(id) {
             if (id.startsWith(VMOD_THAT_EXPORTS_WASI_FUNCTIONS)) {
-                const knownWasi = ["proc_exit", "fd_write", "fd_close", "fd_seek", "fd_read", "environ_sizes_get", "environ_get"];
+                const knownWasi = ["proc_exit", "fd_write", "fd_close", "fd_seek", "fd_read", "environ_sizes_get", "environ_get", "__throw_exception_with_stack_trace"];
                 return `
 import {
 ${knownWasi.map(fname => `\t${fname}`).join(",\n")}
