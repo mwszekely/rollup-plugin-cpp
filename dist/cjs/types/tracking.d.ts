@@ -53,6 +53,7 @@ export declare class ExecutionUnit {
      * and store them by calling this member function.
      */
     addImportFromJs(str: string): void;
+    get includePathsAsArgument(): string;
     /**
      * Does a few things:
      *

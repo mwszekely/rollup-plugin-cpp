@@ -209,6 +209,9 @@ class ExecutionUnit {
         var _a;
         (_a = this.importsFromJs) === null || _a === void 0 ? void 0 : _a.add(str);
     }
+    get includePathsAsArgument() {
+        return this.parent.compilerOptions.includePaths.map(includePath => `-I "${includePath}"`).join(" ");
+    }
     /**
      * Does a few things:
      *
@@ -230,7 +233,7 @@ class ExecutionUnit {
         let argsDebug = `-g -gdwarf-4 -gsource-map`;
         let argsRelease = `-flto -O3`;
         const finalArgs = [
-            ...this.parent.compilerOptions.includePaths.map(includePath => `-I "${includePath}"`),
+            this.includePathsAsArgument,
             argsShared,
             (this.parent.buildMode == "debug" ? argsDebug : argsRelease)
         ];
@@ -368,7 +371,7 @@ class ExecutionUnit {
 }
 class CppSourceFile {
     async resolveIncludes(addWatchFile) {
-        (await runEmscripten("-E -H " + this.path + " -o " + this.includesPath));
+        (await runEmscripten("-E -H " + this.path + ` ${this.executionUnit.includePathsAsArgument} -o ` + this.includesPath));
         const b = await readFile(this.includesPath, "string");
         const includes = new Set(b
             .split("\n")
@@ -409,10 +412,12 @@ class CppSourceFile {
         this.wasm = new WasmFile(this, this.wasmPath, this.executionUnit.parent.wasmUniqueIdCounter++);
     }
     get wasmPath() {
-        return `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${path.basename(this.path)}.wasm`;
+        let projectDir = process$1.cwd();
+        return pluginutils.normalizePath(path.join(projectDir, `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${path.basename(this.path)}.wasm`));
     }
     get includesPath() {
-        return `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${path.basename(this.path)}.inc`;
+        let projectDir = process$1.cwd();
+        return pluginutils.normalizePath(path.join(projectDir, `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${path.basename(this.path)}.inc`));
     }
 }
 class WasmFile {

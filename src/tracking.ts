@@ -1,7 +1,7 @@
 import { normalizePath } from "@rollup/pluginutils";
 import { mkdir } from "fs/promises";
 import { MapOfSets } from "map-and-set-extensions";
-import { basename, dirname, relative } from "path";
+import { basename, dirname, join, relative } from "path";
 import { cwd, stdout } from "process";
 import { clearLine, cursorTo } from "readline";
 import { PluginContext, RollupOptions } from "rollup";
@@ -133,6 +133,10 @@ export class ExecutionUnit {
         this.importsFromJs?.add(str);
     }
 
+    get includePathsAsArgument() {
+        return this.parent.compilerOptions.includePaths.map(includePath => `-I "${includePath}"`).join(" ")
+    }
+
     /**
      * Does a few things:
      * 
@@ -159,7 +163,7 @@ export class ExecutionUnit {
         let argsRelease = `-flto -O3`;
 
         const finalArgs: string[] = [
-            ...this.parent.compilerOptions.includePaths.map(includePath => `-I "${includePath}"`),
+            this.includePathsAsArgument,
             argsShared,
             (this.parent.buildMode == "debug" ? argsDebug : argsRelease)
         ];
@@ -339,7 +343,7 @@ class CppSourceFile {
     includePaths = new Set<string>();
 
     async resolveIncludes(addWatchFile: (id: string) => void) {
-        ((await runEmscripten("-E -H " + this.path + " -o " + this.includesPath)) as string);
+        ((await runEmscripten("-E -H " + this.path + ` ${this.executionUnit.includePathsAsArgument} -o ` + this.includesPath)) as string);
         const b = await readFile(this.includesPath, "string");
         const includes = new Set<string>(b
             .split("\n")
@@ -374,11 +378,13 @@ class CppSourceFile {
     }
 
     get wasmPath() {
-        return `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${basename(this.path)}.wasm`
+        let projectDir = cwd();
+        return normalizePath(join(projectDir, `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${basename(this.path)}.wasm`));
     }
 
     get includesPath() {
-        return `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${basename(this.path)}.inc`
+        let projectDir = cwd();
+        return normalizePath(join(projectDir, `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${basename(this.path)}.inc`));
     }
 
 }

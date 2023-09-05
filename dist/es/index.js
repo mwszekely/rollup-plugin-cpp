@@ -2,7 +2,7 @@ import { normalizePath } from '@rollup/pluginutils';
 import { simple } from 'acorn-walk';
 import { readFile as readFile$1, mkdir } from 'fs/promises';
 import MagicString from 'magic-string';
-import { dirname, relative, basename, join } from 'path';
+import { dirname, relative, join, basename } from 'path';
 import { exec } from 'child_process';
 import { MapOfSets } from 'map-and-set-extensions';
 import { cwd, stdout } from 'process';
@@ -205,6 +205,9 @@ class ExecutionUnit {
         var _a;
         (_a = this.importsFromJs) === null || _a === void 0 ? void 0 : _a.add(str);
     }
+    get includePathsAsArgument() {
+        return this.parent.compilerOptions.includePaths.map(includePath => `-I "${includePath}"`).join(" ");
+    }
     /**
      * Does a few things:
      *
@@ -226,7 +229,7 @@ class ExecutionUnit {
         let argsDebug = `-g -gdwarf-4 -gsource-map`;
         let argsRelease = `-flto -O3`;
         const finalArgs = [
-            ...this.parent.compilerOptions.includePaths.map(includePath => `-I "${includePath}"`),
+            this.includePathsAsArgument,
             argsShared,
             (this.parent.buildMode == "debug" ? argsDebug : argsRelease)
         ];
@@ -364,7 +367,7 @@ class ExecutionUnit {
 }
 class CppSourceFile {
     async resolveIncludes(addWatchFile) {
-        (await runEmscripten("-E -H " + this.path + " -o " + this.includesPath));
+        (await runEmscripten("-E -H " + this.path + ` ${this.executionUnit.includePathsAsArgument} -o ` + this.includesPath));
         const b = await readFile(this.includesPath, "string");
         const includes = new Set(b
             .split("\n")
@@ -405,10 +408,12 @@ class CppSourceFile {
         this.wasm = new WasmFile(this, this.wasmPath, this.executionUnit.parent.wasmUniqueIdCounter++);
     }
     get wasmPath() {
-        return `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${basename(this.path)}.wasm`;
+        let projectDir = cwd();
+        return normalizePath(join(projectDir, `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${basename(this.path)}.wasm`));
     }
     get includesPath() {
-        return `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${basename(this.path)}.inc`;
+        let projectDir = cwd();
+        return normalizePath(join(projectDir, `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${basename(this.path)}.inc`));
     }
 }
 class WasmFile {
