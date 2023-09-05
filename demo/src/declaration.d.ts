@@ -18,6 +18,7 @@ declare module "*/helpers.cpp" {
     const __instance: WebAssembly.Instance;
     const __module: WebAssembly.Module;
     const __memory: WebAssembly.Memory;
+    const __allExports: Record<string, unknown>;
     function strLenS8(ptr: PointerOpaque): number;
     function strLenC8(ptr: PointerOpaque): number;
     function strLenC8N(ptr: PointerOpaque, maxLength: number): number;

@@ -223,6 +223,7 @@ export {
     memory as __memory, 
     instance as __instance, 
     untilReady as __untilReady, 
+    allExports as __allExports,
     allExports as ${SyntheticModuleName}${executionUnit.uniqueId}
 } from ${JSON.stringify(WASM_LOADER + executionUnit.uniqueId)}
 `,
