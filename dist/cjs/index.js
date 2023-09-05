@@ -534,6 +534,7 @@ ${knownWasi.map(fname => `\t\t${fname}, \t \t /** __@WASM_IMPORT_OMITTABLE__ **/
 	env: {
 ${knownEnv.map(fname => `\t\t${fname}, \t \t /** __@WASM_IMPORT_OMITTABLE__ **/`).join("\n")}
 	}
+}
 `;
             }
             if (id.startsWith(WASM_LOADER)) {
