@@ -1,5 +1,6 @@
 import { normalizePath } from '@rollup/pluginutils';
 import { simple } from 'acorn-walk';
+import { KnownExports } from 'basic-event-wasi';
 import { readFile as readFile$1, mkdir } from 'fs/promises';
 import MagicString from 'magic-string';
 import { dirname, relative, join, basename } from 'path';
@@ -518,8 +519,9 @@ function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait, memoryS
         },
         async load(id) {
             if (id.startsWith(VMOD_THAT_EXPORTS_WASI_FUNCTIONS)) {
-                const knownWasi = ["proc_exit", "fd_write", "fd_close", "fd_seek", "fd_read", "environ_sizes_get", "environ_get"];
-                const knownEnv = ["__throw_exception_with_stack_trace"];
+                //const knownWasi = ["proc_exit", "fd_write", "fd_close", "fd_seek", "fd_read", "environ_sizes_get", "environ_get"];
+                //const knownEnv = ["__throw_exception_with_stack_trace"];
+                const { wasi_snapshot_preview1: knownWasi, env: knownEnv } = KnownExports;
                 return `
 import {
 ${[...knownWasi, ...knownEnv].map(fname => `\t${fname}`).join(",\n")}
