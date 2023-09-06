@@ -58,8 +58,8 @@ async function runProgram(prog: string, args: string, { returnsStdout }: Partial
     return ret;
 }
 
-export async function runEmscripten(args: string, opts: Partial<RunProgramArgs> = {}) {
-    return runProgram("em++", `${args}`, opts);
+export async function runEmscripten(mode: "emcc" | "em++", args: string, opts: Partial<RunProgramArgs> = {}) {
+    return runProgram(mode, `${args}`, opts);
 }
 /*
 export async function runClang(args: string) {

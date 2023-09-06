@@ -85,7 +85,7 @@ function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait, memoryS
             //await mkdir(join(projectDir, "modules"), { recursive: true });
             await mkdir(join(projectDir, "temp"), { recursive: true });
             try {
-                await runEmscripten("--version");
+                await runEmscripten("em++", "--version");
             }
             catch (ex) {
                 console.log(`\n\n\nCannot compile C++ because Emscripten is not installed on your system (specifically, it is not available on this system's PATH). If you're on Windows, and you just installed Emscripten and are still seeing this error, you may need to log out to reset your PATH.\n\n\n`)

@@ -58,8 +58,8 @@ async function runProgram(prog, args, { returnsStdout } = {}) {
         console.log(...allStdOut);
     return ret;
 }
-async function runEmscripten(args, opts = {}) {
-    return runProgram("em++", `${args}`, opts);
+async function runEmscripten(mode, args, opts = {}) {
+    return runProgram(mode, `${args}`, opts);
 }
 /*
 export async function runClang(args: string) {
@@ -253,7 +253,7 @@ class ExecutionUnit {
                         path // The input path of the source file
                     ];
                     try {
-                        await runEmscripten(emscriptenArgs.join(" "));
+                        await runEmscripten(path.toLowerCase().endsWith(".c") ? "emcc" : "em++", emscriptenArgs.join(" "));
                     }
                     catch (ex) {
                         stdout.write("\n");
@@ -287,7 +287,7 @@ class ExecutionUnit {
                     ...finalArgs,
                     argsExportedFunctions,
                 ].join(" ");
-                await runEmscripten(`${args}`);
+                await runEmscripten("em++", `${args}`);
                 //const finalWasmContents = await readFile(this.finalFilePath, "binary");
                 //this.parent.context!.setAssetSource(this.fileReferenceId, finalWasmContents);
                 const binaryen = await getBinaryen();
@@ -369,7 +369,7 @@ class ExecutionUnit {
 }
 class CppSourceFile {
     async resolveIncludes(addWatchFile) {
-        (await runEmscripten("-E -H " + this.path + ` ${this.executionUnit.includePathsAsArgument} -o ` + this.includesPath));
+        (await runEmscripten("em++", "-E -H " + this.path + ` ${this.executionUnit.includePathsAsArgument} -o ` + this.includesPath));
         const b = await readFile(this.includesPath, "string");
         const includes = new Set(b
             .split("\n")
@@ -479,7 +479,7 @@ function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait, memoryS
             //await mkdir(join(projectDir, "modules"), { recursive: true });
             await mkdir(join(projectDir, "temp"), { recursive: true });
             try {
-                await runEmscripten("--version");
+                await runEmscripten("em++", "--version");
             }
             catch (ex) {
                 console.log(`\n\n\nCannot compile C++ because Emscripten is not installed on your system (specifically, it is not available on this system's PATH). If you're on Windows, and you just installed Emscripten and are still seeing this error, you may need to log out to reset your PATH.\n\n\n`);

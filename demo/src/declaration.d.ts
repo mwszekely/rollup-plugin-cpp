@@ -40,9 +40,9 @@ declare module "*/helpers.cpp" {
     /** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
     function __getHeapU32(): Uint32Array;
     /** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-    function __getHeapI64(): Int64Array;
+    function __getHeapI64(): BigInt64Array;
     /** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-    function __getHeapU64(): Uint64Array;
+    function __getHeapU64(): BigUint64Array;
     /** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
     function __getHeapF32(): Float32Array;
     /** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */

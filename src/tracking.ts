@@ -190,7 +190,7 @@ export class ExecutionUnit {
                         path                                         // The input path of the source file
                     ];
                     try {
-                        await runEmscripten(emscriptenArgs.join(" "));
+                        await runEmscripten(path.toLowerCase().endsWith(".c")? "emcc" : "em++", emscriptenArgs.join(" "));
                     }
                     catch (ex) {
                         stdout.write("\n");
@@ -232,7 +232,7 @@ export class ExecutionUnit {
                     argsExportedFunctions,
                 ].join(" ")
 
-                await runEmscripten(`${args}`);
+                await runEmscripten("em++", `${args}`);
                 //const finalWasmContents = await readFile(this.finalFilePath, "binary");
                 //this.parent.context!.setAssetSource(this.fileReferenceId, finalWasmContents);
                 const binaryen = await getBinaryen()
@@ -346,7 +346,7 @@ class CppSourceFile {
     includePaths = new Set<string>();
 
     async resolveIncludes(addWatchFile: (id: string) => void) {
-        ((await runEmscripten("-E -H " + this.path + ` ${this.executionUnit.includePathsAsArgument} -o ` + this.includesPath)) as string);
+        ((await runEmscripten("em++", "-E -H " + this.path + ` ${this.executionUnit.includePathsAsArgument} -o ` + this.includesPath)) as string);
         const b = await readFile(this.includesPath, "string");
         const includes = new Set<string>(b
             .split("\n")
