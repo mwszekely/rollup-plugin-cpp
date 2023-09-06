@@ -161,7 +161,7 @@ export class ExecutionUnit {
             this.importsFromJs == null ? "-sLINKABLE=1 -sEXPORT_ALL=2" :
                 (this.importsFromJs.size ? `-sEXPORTED_FUNCTIONS=${[...this.importsFromJs].map(i => `_${i}`).join(",")}` : "");
 
-        let argsShared = "--no-entry -std=c++20 -fwasm-exceptions -sALLOW_MEMORY_GROWTH=1"; // -sSTANDALONE_WASM=1  // -sMINIMAL_RUNTIME=2
+        let argsShared = "--no-entry -fwasm-exceptions -sALLOW_MEMORY_GROWTH=1"; // -sSTANDALONE_WASM=1  // -sMINIMAL_RUNTIME=2
         let argsDebug = `-g -gdwarf-4 -gsource-map`;
         let argsRelease = `-flto -O3`;
 
@@ -183,14 +183,16 @@ export class ExecutionUnit {
             await Promise.all([...this.cppFilesByPath].map(async ([path, cppFile]) => {
                 if (cppFile.wasm.objNeedsRebuild) {
                     cppFile.wasm.objNeedsRebuild = false;
+                        let isCpp = !(path.toLowerCase().endsWith(".c"));
                     const emscriptenArgs: string[] = [
                         ...finalArgs,
+                        isCpp? "-std=c++20" : "-std=c23",
                         "-c",                                        // Compile only and don't link; turn this source file into a yet-to-be-linked object file.
                         `-o ${cppFile.wasmPath}`,                    // The output path of the object file
                         path                                         // The input path of the source file
                     ];
                     try {
-                        await runEmscripten(path.toLowerCase().endsWith(".c")? "emcc" : "em++", emscriptenArgs.join(" "));
+                        await runEmscripten(isCpp? "emcc" : "em++", emscriptenArgs.join(" "));
                     }
                     catch (ex) {
                         stdout.write("\n");

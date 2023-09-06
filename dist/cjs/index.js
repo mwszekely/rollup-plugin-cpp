@@ -231,7 +231,7 @@ class ExecutionUnit {
         const finalTempPath = path.relative(projectDir, this.finalFilePath);
         const argsExportedFunctions = this.importsFromJs == null ? "-sLINKABLE=1 -sEXPORT_ALL=2" :
             (this.importsFromJs.size ? `-sEXPORTED_FUNCTIONS=${[...this.importsFromJs].map(i => `_${i}`).join(",")}` : "");
-        let argsShared = "--no-entry -std=c++20 -fwasm-exceptions -sALLOW_MEMORY_GROWTH=1"; // -sSTANDALONE_WASM=1  // -sMINIMAL_RUNTIME=2
+        let argsShared = "--no-entry -fwasm-exceptions -sALLOW_MEMORY_GROWTH=1"; // -sSTANDALONE_WASM=1  // -sMINIMAL_RUNTIME=2
         let argsDebug = `-g -gdwarf-4 -gsource-map`;
         let argsRelease = `-flto -O3`;
         const finalArgs = [
@@ -250,14 +250,16 @@ class ExecutionUnit {
             await Promise.all([...this.cppFilesByPath].map(async ([path, cppFile]) => {
                 if (cppFile.wasm.objNeedsRebuild) {
                     cppFile.wasm.objNeedsRebuild = false;
+                    let isCpp = !(path.toLowerCase().endsWith(".c"));
                     const emscriptenArgs = [
                         ...finalArgs,
+                        isCpp ? "-std=c++20" : "-std=c23",
                         "-c",
                         `-o ${cppFile.wasmPath}`,
                         path // The input path of the source file
                     ];
                     try {
-                        await runEmscripten(path.toLowerCase().endsWith(".c") ? "emcc" : "em++", emscriptenArgs.join(" "));
+                        await runEmscripten(isCpp ? "emcc" : "em++", emscriptenArgs.join(" "));
                     }
                     catch (ex) {
                         process$1.stdout.write("\n");
