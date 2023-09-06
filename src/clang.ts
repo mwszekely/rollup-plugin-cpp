@@ -70,3 +70,6 @@ export async function runLoader(args: string) {
     return runProgram("wasm-ld", args);
 }
 */
+export const testA = "";
+export const $testA = "";
+export const __testA = "";

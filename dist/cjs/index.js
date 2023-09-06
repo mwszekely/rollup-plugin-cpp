@@ -65,15 +65,6 @@ async function runProgram(prog, args, { returnsStdout } = {}) {
 async function runEmscripten(mode, args, opts = {}) {
     return runProgram(mode, `${args}`, opts);
 }
-/*
-export async function runClang(args: string) {
-    return runProgram("clang++", `${args} -fms-extensions -I "C:/Program Files (x86)/Windows Kits/10/Include/10.0.22621.0/ucrt" -I "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.37.32822/include"`);
-}
-
-export async function runLoader(args: string) {
-    return runProgram("wasm-ld", args);
-}
-*/
 
 let _b;
 // It's weird like this because loading binaryen throws a lot of caught exceptions
@@ -554,7 +545,7 @@ import wasmResponse from ${JSON.stringify(`datafile:~/${executionUnit.finalFileP
 import wasi from ${JSON.stringify(VMOD_THAT_EXPORTS_WASI_FUNCTIONS + executionUnit.uniqueId)}
 import { instantiateWasi } from "basic-event-wasi"
 
-let instantiated = false;
+let instantiated = undefined;
 // An alias for instance.exports
 let allExports;
 // The module, once it's parsed from wasmResponse
@@ -572,9 +563,9 @@ const { promise, resolve, reject } = Promise.withResolvers();
 
 // Call this to wait until the wasmResponse has been fetched, parsed, and instantiated
 // and, more importantly, allExports, module, and instance will have values.
-async function untilReady() {
-	if (!instantiated) {
-		instantiated = true;
+async function untilInstantiated() {
+	if (instantiated === undefined) {
+		instantiated = false;
 		const { wasiReady, imports } = instantiateWasi(promise, wasi);
 		let resolved;
 		if (globalThis.Response && wasmResponse instanceof globalThis.Response)
@@ -590,8 +581,11 @@ async function untilReady() {
 		allExports = resolved.instance.exports;
 		memory = allExports.memory;
 		allExports._initialize();
+        instantiated = true;
 	}
 }
+
+function getInstantiated() { return instantiated; }
 
 function getHeap() { return memory.buffer; }
 function getHeapI8() { return new Int8Array(memory.buffer); }
@@ -606,14 +600,14 @@ function getHeapF32() { return new Float32Array(memory.buffer); }
 function getHeapF64() { return new Float64Array(memory.buffer); }
 
 ${useTopLevelAwait ? `
-await untilReady();
+await untilInstantiated();
 ` : ""}
 export { 
 	allExports, 
 	memory, 
 	instance, 
 	module, 
-	untilReady,
+	untilInstantiated,
 	getHeap,
 	getHeapI8,
 	getHeapU8,
@@ -642,24 +636,9 @@ export {
                 return {
                     //code: `export * from ${JSON.stringify(HELPER_IMPORT_WASM_ + cppFile.wasm!.uniqueId)}`,
                     code: `
+import * as $ from ${JSON.stringify(WASM_LOADER + executionUnit.uniqueId)}
 export { 
-	allExports as __allExports, 
-	memory as __memory, 
-	instance as __instance, 
-	module as __module, 
-	untilReady as __untilReady,
-
-	getHeap as __getHeap,
-	getHeapI8 as __getHeapI8,
-	getHeapU8 as __getHeapU8,
-	getHeapI16 as __getHeapI16,
-	getHeapU16 as __getHeapU16,
-	getHeapI32 as __getHeapI32,
-	getHeapU32 as __getHeapU32,
-	getHeapI64 as __getHeapI64,
-	getHeapU64 as __getHeapU64,
-	getHeapF32 as __getHeapF32,
-	getHeapF64 as __getHeapF64,
+	$,
 	allExports as ${SyntheticModuleName}${executionUnit.uniqueId}
 } from ${JSON.stringify(WASM_LOADER + executionUnit.uniqueId)}
 `,
