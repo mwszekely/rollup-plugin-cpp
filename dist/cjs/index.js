@@ -587,30 +587,84 @@ async function untilInstantiated() {
 	}
 }
 
-/** Allows synchronously checking if the WASM module is instantiated yet. When \`false\`, no exports can be used. **/
+/**
+ * Allows synchronously checking if the WASM module is instantiated yet. When \`false\`, no exports can be used.
+ */
 function getInstantiated() { return instantiated; }
-/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
+/** 
+ * Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. 
+ */
 function getHeap() { return memory.buffer; }
-/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-function getHeapI8() { return new Int8Array(memory.buffer); }
-/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-function getHeapU8() { return new Uint8Array(memory.buffer); }
-/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-function getHeapI16() { return new Int16Array(memory.buffer); }
-/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-function getHeapU16() { return new Uint16Array(memory.buffer); }
-/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-function getHeapI32() { return new Int32Array(memory.buffer); }
-/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-function getHeapU32() { return new Uint32Array(memory.buffer); }
-/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-function getHeapI64() { return new BigInt64Array(memory.buffer); }
-/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-function getHeapU64() { return new BigUint64Array(memory.buffer); }
-/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-function getHeapF32() { return new Float32Array(memory.buffer); }
-/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-function getHeapF64() { return new Float64Array(memory.buffer); }
+/** 
+ * Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows.
+ * 
+ * @param {number} [address] The byte-based address to start the array from.
+ * @param {number} [count] The number of elements (\`char\`s, in this case) to reference.
+ */
+function getHeapI8(address = 0, count) { return new Int8Array(memory.buffer, address, count); }
+/** 
+ * Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows.
+ * 
+ * @param {number} [address] The byte-based address to start the array from.
+ * @param {number} [count] The number of elements (bytes, in this case) to reference.
+ */
+function getHeapU8(address = 0, count) { return new Uint8Array(memory.buffer, address, count); }
+/** 
+ * Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows.
+ * 
+ * @param {number} [address] The byte-based address to start the array from.
+ * @param {number} [count] The number of elements (\`short\`s, in this case) to reference.
+ */
+function getHeapI16(address = 0, count) { return new Int16Array(memory.buffer, address, count); }
+/** 
+ * Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows.
+ * 
+ * @param {number} [address] The byte-based address to start the array from.
+ * @param {number} [count] The number of elements (\`short\`s, in this case) to reference.
+ */
+function getHeapU16(address = 0, count) { return new Uint16Array(memory.buffer, address, count); }
+/** 
+ * Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows.
+ * 
+ * @param {number} [address] The byte-based address to start the array from.
+ * @param {number} [count] The number of elements (\`int\`s, in this case) to reference.
+ */
+function getHeapI32(address = 0, count) { return new Int32Array(memory.buffer, address, count); }
+/** 
+ * Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows.
+ * 
+ * @param {number} [address] The byte-based address to start the array from.
+ * @param {number} [count] The number of elements (\`int\`s, in this case) to reference.
+ */
+function getHeapU32(address = 0, count) { return new Uint32Array(memory.buffer, address, count); }
+/** 
+ * Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows.
+ * 
+ * @param {number} [address] The byte-based address to start the array from.
+ * @param {number} [count] The number of elements (\`long\`s, in this case) to reference.
+ */
+function getHeapI64(address = 0, count) { return new BigInt64Array(memory.buffer, address, count); }
+/** 
+ * Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows.
+ * 
+ * @param {number} [address] The byte-based address to start the array from.
+ * @param {number} [count] The number of elements (\`long\`s, in this case) to reference.
+ */
+function getHeapU64(address = 0, count) { return new BigUint64Array(memory.buffer, address, count); }
+/** 
+ * Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows.
+ * 
+ * @param {number} [address] The byte-based address to start the array from.
+ * @param {number} [count] The number of elements (\`float\`s, in this case) to reference.
+ */
+function getHeapF32(address = 0, count) { return new Float32Array(memory.buffer, address, count); }
+/** 
+ * Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows.
+ * 
+ * @param {number} [address] The byte-based address to start the array from.
+ * @param {number} [count] The number of elements (\`double\`s, in this case) to reference.
+ */
+function getHeapF64(address = 0, count) { return new Float64Array(memory.buffer, address, count); }
 
 ${useTopLevelAwait ? `
 await untilInstantiated();

@@ -1,6 +1,11 @@
+export type Pointer<T> = number & {
+    _ptrType?: T;
+};
 export interface CppMeta {
     /** Resolves when the other parts of this module are ready to be used. Do not use anything until this has resolved. */
     untilInstantiated(): Promise<void>;
+    /** Synchronously returns `true` if the WASM module is ready and `false` if it isn't yet. */
+    getInstantiated(): boolean;
     /** The instantiation that provides all the other exports */
     instance: WebAssembly.Instance;
     /** The module that instantiate the current instance. */
@@ -12,25 +17,23 @@ export interface CppMeta {
     /** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
     getHeap(): ArrayBuffer;
     /** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-    getHeapI8(): Int8Array;
+    getHeapI8(address?: Pointer<number>, count?: number): Int8Array;
     /** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-    getHeapU8(): Uint8Array;
+    getHeapU8(address?: Pointer<number>, count?: number): Uint8Array;
     /** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-    getHeapI16(): Int16Array;
+    getHeapI16(address?: Pointer<number>, count?: number): Int16Array;
     /** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-    getHeapU16(): Uint16Array;
+    getHeapU16(address?: Pointer<number>, count?: number): Uint16Array;
     /** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-    getHeapI32(): Int32Array;
+    getHeapI32(address?: Pointer<number>, count?: number): Int32Array;
     /** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-    getHeapU32(): Uint32Array;
+    getHeapU32(address?: Pointer<number>, count?: number): Uint32Array;
     /** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-    getHeapI64(): BigInt64Array;
+    getHeapI64(address?: Pointer<number>, count?: number): BigInt64Array;
     /** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-    getHeapU64(): BigUint64Array;
+    getHeapU64(address?: Pointer<number>, count?: number): BigUint64Array;
     /** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-    getHeapF32(): Float32Array;
+    getHeapF32(address?: Pointer<number>, count?: number): Float32Array;
     /** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
-    getHeapF64(): Float64Array;
-    /** Synchronously returns `true` if the WASM module is ready and `false` if it isn't yet. */
-    getInstantiated(): boolean;
+    getHeapF64(address?: Pointer<number>, count?: number): Float64Array;
 }
