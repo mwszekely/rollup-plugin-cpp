@@ -108,7 +108,7 @@ function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait, memoryS
             }
         },
         resolveId(id, importer) {
-            
+
             allExeUnits.context = this;
 
             if (id.startsWith(WASM_LOADER)) return id;
@@ -165,24 +165,26 @@ import wasmResponse from ${JSON.stringify(`datafile:~/${executionUnit.finalFileP
 import wasi from ${JSON.stringify(VMOD_THAT_EXPORTS_WASI_FUNCTIONS + executionUnit.uniqueId)}
 import { instantiateWasi } from "basic-event-wasi"
 
+/** @type {boolean} */
 let instantiated = undefined;
-// An alias for instance.exports
+/** @type {{Object.<string, any>}} */
 let allExports;
-// The module, once it's parsed from wasmResponse
+/** @type {WebAssembly.Module} */
 let module;
-// The instance created from the module parsed from wasmResponse
+/** @type {WebAssembly.Instance} */
 let instance;
-
-// An ArrayBuffer representing the memory the current instance's module was compiled with and is currently running
-// (Emscripten compiles with 0x1_00_00_00 bytes of memory by default)
+/** @type {WebAssembly.Memory} */
 let memory;
 
 // This is a promise that resolves to the WASM module **before WASI is initialized**.
 // WASI needs it to initialize itself; it shouldn't be used for any other purpose.
 const { promise, resolve, reject } = Promise.withResolvers();
 
-// Call this to wait until the wasmResponse has been fetched, parsed, and instantiated
-// and, more importantly, allExports, module, and instance will have values.
+/**
+ * Returns a promise that is fulfilled when the WASM module has been instantiated and its exports are ready to use.
+ * 
+ * This resolves at the same time that \`getInstantiated\` starts returning \`true\`. This is often the more preferable one to use. 
+ */
 async function untilInstantiated() {
 	if (instantiated === undefined) {
 		instantiated = false;
@@ -205,21 +207,32 @@ async function untilInstantiated() {
 	}
 }
 
+/** Allows synchronously checking if the WASM module is instantiated yet. When \`false\`, no exports can be used. **/
 function getInstantiated() { return instantiated; }
-
+/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
 function getHeap() { return memory.buffer; }
+/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
 function getHeapI8() { return new Int8Array(memory.buffer); }
+/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
 function getHeapU8() { return new Uint8Array(memory.buffer); }
+/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
 function getHeapI16() { return new Int16Array(memory.buffer); }
+/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
 function getHeapU16() { return new Uint16Array(memory.buffer); }
+/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
 function getHeapI32() { return new Int32Array(memory.buffer); }
+/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
 function getHeapU32() { return new Uint32Array(memory.buffer); }
+/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
 function getHeapI64() { return new BigInt64Array(memory.buffer); }
+/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
 function getHeapU64() { return new BigUint64Array(memory.buffer); }
+/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
 function getHeapF32() { return new Float32Array(memory.buffer); }
+/** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
 function getHeapF64() { return new Float64Array(memory.buffer); }
 
-${useTopLevelAwait? `
+${useTopLevelAwait ? `
 await untilInstantiated();
 ` : ""}
 export { 
@@ -228,6 +241,7 @@ export {
 	instance, 
 	module, 
 	untilInstantiated,
+    getInstantiated,
 	getHeap,
 	getHeapI8,
 	getHeapU8,
@@ -260,10 +274,9 @@ export {
                 return {
                     //code: `export * from ${JSON.stringify(HELPER_IMPORT_WASM_ + cppFile.wasm!.uniqueId)}`,
                     code: `
-import * as $ from ${JSON.stringify(WASM_LOADER + executionUnit.uniqueId)}
+export * as $ from ${JSON.stringify(WASM_LOADER + executionUnit.uniqueId)};
 export { 
-	$,
-	allExports as ${SyntheticModuleName}${executionUnit.uniqueId}
+    allExports as ${SyntheticModuleName}${executionUnit.uniqueId}
 } from ${JSON.stringify(WASM_LOADER + executionUnit.uniqueId)}
 `,
                     moduleSideEffects: true
@@ -292,7 +305,11 @@ export {
                                 else if (specifier.type == "ImportSpecifier") {
                                     if (specifier.imported.name.startsWith("__"))
                                         return;
+                                    if (specifier.imported.name.startsWith("$"))
+                                        return;
                                     if (specifier.imported.name == "_initialize")
+                                        return;
+                                    if (specifier.imported.name == "_start")
                                         return;
                                     exeUnit.addImportFromJs(specifier.imported.name);
                                 }

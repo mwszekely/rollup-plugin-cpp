@@ -5,7 +5,7 @@ import { readStrC16 } from "./shared.js";
 import { bar2, foo } from "./test.cpp";
 import "./test2.cpp";
 (async () => {
-    await $.untilReady();
+    await $.untilInstantiated();
     let ptr = bar2();
     
     

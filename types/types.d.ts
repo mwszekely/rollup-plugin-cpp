@@ -1,6 +1,6 @@
 export interface CppMeta {
     /** Resolves when the other parts of this module are ready to be used. Do not use anything until this has resolved. */
-    untilReady(): Promise<void>;
+    untilInstantiated(): Promise<void>;
     /** The instantiation that provides all the other exports */
     instance: WebAssembly.Instance;
     /** The module that instantiate the current instance. */
@@ -31,4 +31,6 @@ export interface CppMeta {
     getHeapF32(): Float32Array;
     /** Returns the current WASM memory. Do not save this &mdash; it can be invalidated when memory grows. */
     getHeapF64(): Float64Array;
+    /** Synchronously returns `true` if the WASM module is ready and `false` if it isn't yet. */
+    getInstantiated(): boolean;
 }

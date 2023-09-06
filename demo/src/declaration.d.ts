@@ -32,12 +32,3 @@ declare module "*/test.cpp" {
     function bar2(): number;
 
 }
-
-/*
-declare module "*.cpp" {
-    // These are available from any C++ export (with ugly names to prevent collisions; collisions couldn't exist with these names without UB)
-    function __untilReady(): Promise<void>;
-    function __getInstance(): WebAssembly.Instance;
-    function __getModule(): WebAssembly.Module;
-}
-*/

@@ -1,5 +1,5 @@
 
-import { __memory, __untilReady, strLenC16 } from "./helpers.cpp";
+import { $, strLenC16 } from "./helpers.cpp";
 import "./test2.cpp";
 
 
@@ -10,9 +10,9 @@ const utf16Decoder = new TextDecoder("utf-16" satisfies TextDecoderLabels);
 
 
 export async function foo() {
-    await __untilReady();
+    await $.untilInstantiated();
     let ptr = 0;//bar2();
-    let str = readStrC16(__memory.buffer, ptr);
+    let str = readStrC16($.memory.buffer, ptr);
 
     //let strMemory = new Uint16Array((instance.exports.memory as WebAssembly.Memory).buffer).slice(ptr / 2);
 
