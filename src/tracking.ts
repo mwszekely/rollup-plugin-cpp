@@ -186,7 +186,7 @@ export class ExecutionUnit {
                         let isCpp = !(path.toLowerCase().endsWith(".c"));
                     const emscriptenArgs: string[] = [
                         ...finalArgs,
-                        isCpp? "-std=c++20" : "-std=c23",
+                        isCpp? "-std=c++20" : "-std=c2x",
                         "-c",                                        // Compile only and don't link; turn this source file into a yet-to-be-linked object file.
                         `-o ${cppFile.wasmPath}`,                    // The output path of the object file
                         path                                         // The input path of the source file

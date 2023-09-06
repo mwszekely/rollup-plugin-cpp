@@ -253,7 +253,7 @@ class ExecutionUnit {
                     let isCpp = !(path.toLowerCase().endsWith(".c"));
                     const emscriptenArgs = [
                         ...finalArgs,
-                        isCpp ? "-std=c++20" : "-std=c23",
+                        isCpp ? "-std=c++20" : "-std=c2x",
                         "-c",
                         `-o ${cppFile.wasmPath}`,
                         path // The input path of the source file
