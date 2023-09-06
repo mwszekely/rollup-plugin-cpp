@@ -259,7 +259,7 @@ class ExecutionUnit {
                         path // The input path of the source file
                     ];
                     try {
-                        await runEmscripten(isCpp ? "emcc" : "em++", emscriptenArgs.join(" "));
+                        await runEmscripten(isCpp ? "em++" : "emcc", emscriptenArgs.join(" "));
                     }
                     catch (ex) {
                         process$1.stdout.write("\n");
