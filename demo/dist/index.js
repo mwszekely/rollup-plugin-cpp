@@ -31,18 +31,6 @@
 
     const data = decodeAssetResponse(fetch("assets/default.wasm"));
 
-    function environ_get(environCountOutput, environSizeOutput) {
-        this.writeUint32(environCountOutput, 0);
-        this.writeUint32(environSizeOutput, 0);
-        return 0;
-    }
-
-    function environ_sizes_get(environCountOutput, environSizeOutput) {
-        this.writeUint32(environCountOutput, 0);
-        this.writeUint32(environSizeOutput, 0);
-        return 0;
-    }
-
     // Did you know that CustomEvent isn't defined in Worklets? Fun!!
     globalThis.CustomEvent ??= class CustomEvent extends Event {
         constructor(type, eventInitDict) {
@@ -64,6 +52,27 @@
             this.detail = (detail ?? this.detail);
         }
     };
+
+    class WebAssemblyExceptionEvent extends CustomEvent {
+        constructor(impl, exception) {
+            super("WebAssemblyExceptionEvent", { cancelable: false, detail: { exception } });
+        }
+    }
+    function __throw_exception_with_stack_trace(ex) {
+        this.dispatchEvent(new WebAssemblyExceptionEvent(this, ex));
+    }
+
+    function environ_get(environCountOutput, environSizeOutput) {
+        this.writeUint32(environCountOutput, 0);
+        this.writeUint32(environSizeOutput, 0);
+        return 0;
+    }
+
+    function environ_sizes_get(environCountOutput, environSizeOutput) {
+        this.writeUint32(environCountOutput, 0);
+        this.writeUint32(environSizeOutput, 0);
+        return 0;
+    }
 
     class FileDescriptorCloseEvent extends CustomEvent {
         constructor(fileDescriptor) {
@@ -303,15 +312,6 @@
         throw new AbortError(code);
     }
 
-    class WebAssemblyExceptionEvent extends CustomEvent {
-        constructor(impl, exception) {
-            super("WebAssemblyExceptionEvent", { cancelable: false, detail: { exception } });
-        }
-    }
-    function __throw_exception_with_stack_trace(ex) {
-        this.dispatchEvent(new WebAssemblyExceptionEvent(this, ex));
-    }
-
     /**
      * The WASI interface functions can't be used alone -- they need context like (what memory is this a pointer in) and such.
      *
@@ -337,7 +337,16 @@
      * @param base
      * @returns
      */
-    function instantiateWasi(wasmInstance, base) {
+    function instantiateWasi(wasmInstance, base, { dispatchEvent } = {}) {
+        dispatchEvent ??= function dispatchEvent(event) {
+            if ("dispatchEvent" in globalThis) {
+                return globalThis.dispatchEvent(event);
+            }
+            else {
+                console.warn(`Unhandled event: ${event}`);
+                return false;
+            }
+        };
         let resolve;
         const p = {
             instance: null,
@@ -364,7 +373,7 @@
             // TODO on both of these
             readPointer(ptr) { return p.getMemory().getUint32(ptr, true); },
             getPointerSize() { return 4; },
-            dispatchEvent(e) { return globalThis.dispatchEvent(e); }
+            dispatchEvent(e) { return dispatchEvent(e); }
         };
         wasmInstance.then(({ instance, module }) => {
             p.instance = instance;
