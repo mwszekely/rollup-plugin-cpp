@@ -280,7 +280,7 @@ class ExecutionUnit {
             }
             else {
                 this.exeNeedsRebuild = false;
-                console.log(`Compiling all object files together into a the final executable...`);
+                console.log(`${this.wasmFilesById.size == 1 ? "Rec" : "C"}ompiling ${this.wasmFilesById.size == 1 ? "the object file" : this.wasmFilesById.size == 2 ? "both object files together" : `all ${this.wasmFilesById.size} object files together`} into the final executable...`);
                 const args = [
                     Array.from(this.wasmFilesById).map(([_id, wasm]) => wasm.path).join(" "),
                     `-o ${finalTempPath}`,
