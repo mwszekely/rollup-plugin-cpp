@@ -7,7 +7,9 @@ import { dirname, join } from "path";
 import { InputPluginOption, NormalizedInputOptions, SourceMapInput } from "rollup";
 import { runEmscripten } from "./clang.js";
 import { ExecutionUnit, ExecutionUnits } from "./tracking.js";
+import type { CppMeta } from "./types.js";
 import { getDatafilePlugin } from "./util.js";
+export type { CppMeta };
 
 const SyntheticModuleName = "wasm_module_"
 

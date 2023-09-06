@@ -1,9 +1,21 @@
 import "./with-resolvers.js";
 
-import { __memory as memory, __untilReady as untilReady } from "./helpers.cpp";
+import { $ } from "./helpers.cpp";
 import { readStrC16 } from "./shared.js";
 import { bar2, foo } from "./test.cpp";
 import "./test2.cpp";
+(async () => {
+    await $.untilReady();
+    let ptr = bar2();
+    
+    
+    let str = readStrC16($.memory.buffer, ptr);
+
+    console.log(str);
+
+    foo();
+})()
+
 /*
 import "./core/src/BarcodeFormat.cpp";
 import "./core/src/BinaryBitmap.cpp";
@@ -110,15 +122,3 @@ import "./core/src/qrcode/QRReader.cpp";
 import "./core/src/qrcode/QRVersion.cpp";
 import "./core/src/qrcode/QRWriter.cpp";
 */
-
-(async () => {
-    await untilReady();
-    let ptr = bar2();
-    
-    
-    let str = readStrC16(memory.buffer, ptr);
-
-    console.log(str);
-
-    foo();
-})()

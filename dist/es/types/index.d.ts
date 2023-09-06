@@ -1,4 +1,6 @@
 import { InputPluginOption } from "rollup";
+import type { CppMeta } from "./types.js";
+export type { CppMeta };
 export interface PluginCppOptions {
     defaultExeName?: string;
     includePaths?: string[];

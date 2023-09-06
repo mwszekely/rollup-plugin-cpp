@@ -13,13 +13,13 @@ export default {
     },
     output: {
         dir: "./dist",
-        format: "iife"
+        format: "es"
         //file: "./dist/test-output.js"
     },
     plugins: [
         (typescript)(),
         (resolve)(),
-        pluginCpp({ useTopLevelAwait: false, includePaths: ["C:/Users/Matt/Documents/GitHub/wasm/demo/src/core/src"], buildMode: undefined, wasiLib: undefined }),
+        pluginCpp({ useTopLevelAwait: false, includePaths: ["C:/Users/Matt/Documents/GitHub/wasm/demo/src/core/src"], buildMode: undefined }),
         (datafile)({ fileTypes: { ".wasm": { location: "asset" } } }),
         //wasmPlugin()
     ]

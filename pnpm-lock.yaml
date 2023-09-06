@@ -22,7 +22,7 @@ dependencies:
     version: 8.2.0
   basic-event-wasi:
     specifier: github:mwszekely/basic-event-wasi
-    version: github.com/mwszekely/basic-event-wasi/b169ee0c499adcf9357e2c9375954bd32d2f1a7b
+    version: github.com/mwszekely/basic-event-wasi/86de5a20843df629ea5890e4a0e134316bd70ba7
   binaryen:
     specifier: ^114.0.0
     version: 114.0.0
@@ -912,8 +912,8 @@ packages:
     engines: {node: '>=6'}
     dev: false
 
-  github.com/mwszekely/basic-event-wasi/b169ee0c499adcf9357e2c9375954bd32d2f1a7b:
-    resolution: {tarball: https://codeload.github.com/mwszekely/basic-event-wasi/tar.gz/b169ee0c499adcf9357e2c9375954bd32d2f1a7b}
+  github.com/mwszekely/basic-event-wasi/86de5a20843df629ea5890e4a0e134316bd70ba7:
+    resolution: {tarball: https://codeload.github.com/mwszekely/basic-event-wasi/tar.gz/86de5a20843df629ea5890e4a0e134316bd70ba7}
     name: basic-event-wasi
     version: 1.0.0
     dependencies:

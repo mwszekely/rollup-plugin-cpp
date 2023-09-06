@@ -29,7 +29,138 @@
     	return await decodeAssetShared(response, r => r, response);
     }
 
-    const data = decodeAssetResponse(fetch("assets/default.wasm"));
+    decodeAssetResponse(fetch("assets/default.wasm"));
+
+    // Did you know that Event isn't defined in Worklets in Firefox and possibly other environments? Even more fun!!
+    globalThis.Event ??= class Event {
+        constructor(type_, eventInitDict) {
+            this.bubbles = eventInitDict?.bubbles || false;
+            this.cancelBubble = false;
+            this.cancelable = eventInitDict?.cancelable || false;
+            this.composed = eventInitDict?.composed || false;
+            this.currentTarget = null;
+            this.defaultPrevented = false;
+            this.eventPhase = Event.NONE;
+            this.isTrusted = true;
+            this.returnValue = false;
+            this.srcElement = null;
+            this.target = null;
+            this.timeStamp = 0;
+            this.type = type_;
+        }
+        static NONE = 0;
+        static CAPTURING_PHASE = 1;
+        static AT_TARGET = 2;
+        static BUBBLING_PHASE = 3;
+        /**
+         * Returns true or false depending on how event was initialized. True if event goes through its target's ancestors in reverse tree order, and false otherwise.
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/bubbles)
+         */
+        bubbles;
+        /**
+         * @deprecated
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/cancelBubble)
+         */
+        cancelBubble;
+        /**
+         * Returns true or false depending on how event was initialized. Its return value does not always carry meaning, but true can indicate that part of the operation during which event was dispatched, can be canceled by invoking the preventDefault() method.
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/cancelable)
+         */
+        cancelable;
+        /**
+         * Returns true or false depending on how event was initialized. True if event invokes listeners past a ShadowRoot node that is the root of its target, and false otherwise.
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/composed)
+         */
+        composed;
+        /**
+         * Returns the object whose event listener's callback is currently being invoked.
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/currentTarget)
+         */
+        currentTarget;
+        /**
+         * Returns true if preventDefault() was invoked successfully to indicate cancelation, and false otherwise.
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/defaultPrevented)
+         */
+        defaultPrevented;
+        /**
+         * Returns the event's phase, which is one of NONE, CAPTURING_PHASE, AT_TARGET, and BUBBLING_PHASE.
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/eventPhase)
+         */
+        eventPhase;
+        /**
+         * Returns true if event was dispatched by the user agent, and false otherwise.
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/isTrusted)
+         */
+        isTrusted;
+        /**
+         * @deprecated
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/returnValue)
+         */
+        returnValue;
+        /**
+         * @deprecated
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/srcElement)
+         */
+        srcElement;
+        /**
+         * Returns the object to which event is dispatched (its target).
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/target)
+         */
+        target;
+        /**
+         * Returns the event's timestamp as the number of milliseconds measured relative to the time origin.
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/timeStamp)
+         */
+        timeStamp;
+        /**
+         * Returns the type of event, e.g. "click", "hashchange", or "submit".
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/type)
+         */
+        type;
+        /**
+         * Returns the invocation target objects of event's path (objects on which listeners will be invoked), except for any nodes in shadow trees of which the shadow root's mode is "closed" that are not reachable from event's currentTarget.
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/composedPath)
+         */
+        composedPath() { return []; }
+        /**
+         * @deprecated
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/initEvent)
+         */
+        initEvent(type_, bubbles, cancelable) { this.type = type_; this.bubbles = bubbles || this.bubbles; this.cancelable = cancelable || this.cancelable; }
+        /**
+         * If invoked when the cancelable attribute value is true, and while executing a listener for the event with passive set to false, signals to the operation that caused event to be dispatched that it needs to be canceled.
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/preventDefault)
+         */
+        preventDefault() { this.defaultPrevented = true; }
+        /**
+         * Invoking this method prevents event from reaching any registered event listeners after the current one finishes running and, when dispatched in a tree, also prevents event from reaching any other objects.
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/stopImmediatePropagation)
+         */
+        stopImmediatePropagation() { }
+        /**
+         * When dispatched in a tree, invoking this method prevents event from reaching any objects other than the current object.
+         *
+         * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/stopPropagation)
+         */
+        stopPropagation() { }
+    };
 
     // Did you know that CustomEvent isn't defined in Worklets? Fun!!
     globalThis.CustomEvent ??= class CustomEvent extends Event {
@@ -52,103 +183,6 @@
             this.detail = (detail ?? this.detail);
         }
     };
-
-    class WebAssemblyExceptionEvent extends CustomEvent {
-        constructor(impl, exception) {
-            super("WebAssemblyExceptionEvent", { cancelable: false, detail: { exception } });
-        }
-    }
-    function __throw_exception_with_stack_trace(ex) {
-        this.dispatchEvent(new WebAssemblyExceptionEvent(this, ex));
-    }
-
-    function environ_get(environCountOutput, environSizeOutput) {
-        this.writeUint32(environCountOutput, 0);
-        this.writeUint32(environSizeOutput, 0);
-        return 0;
-    }
-
-    function environ_sizes_get(environCountOutput, environSizeOutput) {
-        this.writeUint32(environCountOutput, 0);
-        this.writeUint32(environSizeOutput, 0);
-        return 0;
-    }
-
-    class FileDescriptorCloseEvent extends CustomEvent {
-        constructor(fileDescriptor) {
-            super("FileDescriptorCloseEvent", { cancelable: true, detail: { fileDescriptor } });
-        }
-    }
-    /** POSIX close */
-    function fd_close(fd) {
-        const event = new FileDescriptorCloseEvent(fd);
-        debugger;
-        if (this.dispatchEvent(event)) ;
-    }
-
-    function parse(info, ptr) {
-        return {
-            bufferStart: info.readPointer(ptr),
-            bufferLength: info.readUint32(ptr + info.getPointerSize())
-        };
-    }
-    function* parseArray(info, ptr, count) {
-        const sizeofStruct = info.getPointerSize() + 4;
-        for (let i = 0; i < count; ++i) {
-            yield parse(info, ptr + (i * sizeofStruct));
-        }
-    }
-
-    class FileDescriptorReadEvent extends CustomEvent {
-        _bytesWritten = 0;
-        constructor(impl, fileDescriptor, requestedBufferInfo) {
-            super("FileDescriptorReadEvent", {
-                bubbles: false,
-                cancelable: true,
-                detail: {
-                    fileDescriptor,
-                    requestedBuffers: requestedBufferInfo,
-                    readIntoMemory: (inputBuffers) => {
-                        // 100% untested, probably doesn't work if I'm being honest
-                        for (let i = 0; i < requestedBufferInfo.length; ++i) {
-                            if (i >= inputBuffers.length)
-                                break;
-                            const buffer = inputBuffers[i];
-                            for (let j = 0; j < Math.min(buffer.byteLength, inputBuffers[j].byteLength); ++j) {
-                                impl.writeUint8(requestedBufferInfo[i].bufferStart + j, inputBuffers[i][j]);
-                                ++this._bytesWritten;
-                            }
-                        }
-                    }
-                }
-            });
-        }
-        bytesWritten() {
-            return this._bytesWritten;
-        }
-    }
-    /** POSIX readv */
-    function fd_read(fd, iov, iovcnt, pnum) {
-        debugger;
-        let nWritten = 0;
-        const gen = parseArray(this, iov, iovcnt);
-        // Get all the data to read in its separate buffers
-        //const asTypedArrays = [...gen].map(({ bufferStart, bufferLength }) => { nWritten += bufferLength; return new Uint8Array(this.getMemory().buffer, bufferStart, bufferLength) });
-        const event = new FileDescriptorReadEvent(this, fd, [...gen]);
-        if (this.dispatchEvent(event)) {
-            nWritten = 0;
-            /*if (fd == 0) {
-
-            }
-            else
-                return errorno.badf;*/
-        }
-        else {
-            nWritten = event.bytesWritten();
-        }
-        this.writeUint32(pnum, nWritten);
-        return 0;
-    }
 
     var errorno;
     (function (errorno) {
@@ -231,224 +265,12 @@
         errorno[errorno["notcapable"] = 76] = "notcapable";
     })(errorno || (errorno = {}));
 
-    class FileDescriptorSeekEvent extends CustomEvent {
-        constructor(fileDescriptor) {
-            super("FileDescriptorSeekEvent", { cancelable: true, detail: { fileDescriptor } });
-        }
-    }
-    /** POSIX lseek */
-    function fd_seek(fd, offset, whence, offsetOut) {
-        debugger;
-        switch (fd) {
-            case 0:
-                break;
-            case 1:
-                break;
-            case 2:
-                break;
-            default:
-                if (this.dispatchEvent(new FileDescriptorSeekEvent(fd)))
-                    return errorno.badf;
-        }
-        return 0;
-    }
-
-    class FileDescriptorWriteEvent extends CustomEvent {
-        constructor(fileDescriptor, data) {
-            super("FileDescriptorWriteEvent", { bubbles: false, cancelable: true, detail: { data, fileDescriptor } });
-        }
-        asString(label) {
-            return this.detail.data.map((d, index) => {
-                let decoded = getTextDecoder(label).decode(d);
-                if (decoded == "\0" && index == this.detail.data.length - 1)
-                    return "";
-                return decoded;
-            }).join("");
-        }
-    }
-    /** POSIX writev */
-    function fd_write(fd, iov, iovcnt, pnum) {
-        let nWritten = 0;
-        const gen = parseArray(this, iov, iovcnt);
-        // Get all the data to write in its separate buffers
-        const asTypedArrays = [...gen].map(({ bufferStart, bufferLength }) => { nWritten += bufferLength; return new Uint8Array(this.getMemory().buffer, bufferStart, bufferLength); });
-        const event = new FileDescriptorWriteEvent(fd, asTypedArrays);
-        if (this.dispatchEvent(event)) {
-            const str = event.asString("utf-8");
-            if (fd == 1)
-                console.log(str);
-            else if (fd == 2)
-                console.error(str);
-            else
-                return errorno.badf;
-        }
-        this.writeUint32(pnum, nWritten);
-        return 0;
-    }
-    const textDecoders = new Map();
-    function getTextDecoder(label) {
-        let ret = textDecoders.get(label);
-        if (!ret) {
-            ret = new TextDecoder(label);
-            textDecoders.set(label, ret);
-        }
-        return ret;
-    }
-
-    class AbortEvent extends CustomEvent {
-        code;
-        constructor(code) {
-            super("AbortEvent", { bubbles: false, cancelable: false, detail: { code } });
-            this.code = code;
-        }
-    }
-    class AbortError extends Error {
-        constructor(code) {
-            super(`abort(${code}) was called`);
-        }
-    }
-    function proc_exit(code) {
-        this.dispatchEvent(new AbortEvent(code));
-        throw new AbortError(code);
-    }
-
-    /**
-     * The WASI interface functions can't be used alone -- they need context like (what memory is this a pointer in) and such.
-     *
-     * This function provides that context to an import before it's passed to an `Instance` for construction.
-     *
-     * @remarks Intended usage:
-     *
-     * ```typescript
-     * import { fd_write, proc_exit } from "whatever-this-lib-is-called"
-     * // Waiting for https://github.com/tc39/proposal-promise-with-resolvers...
-     * let resolve: (info: WebAssemblyInstantiatedSource) => void;
-     * let reject: (error: any) => void;
-     * let promise = new Promise<WebAssemblyInstantiatedSource>((res, rej) => {
-     *     resolve = res;
-     *     reject = rej;
-     * });
-     *
-     * WebAssembly.instantiateStreaming(source, { ...makeWasiInterface(promise.then(s => s.instance), { fd_write, proc_exit }) });
-     * ```
-     * ([Please please please please please](https://github.com/tc39/proposal-promise-with-resolvers))
-     *
-     * @param wasmInstance
-     * @param base
-     * @returns
-     */
-    function instantiateWasi(wasmInstance, base, { dispatchEvent } = {}) {
-        dispatchEvent ??= function dispatchEvent(event) {
-            if ("dispatchEvent" in globalThis) {
-                return globalThis.dispatchEvent(event);
-            }
-            else {
-                console.warn(`Unhandled event: ${event}`);
-                return false;
-            }
-        };
-        let resolve;
-        const p = {
-            instance: null,
-            module: null,
-            wasiSubset: base,
-            getMemory() { return new DataView(p.instance.exports.memory.buffer); },
-            // wasm is little endian by default, and DataView is big endian by default.............
-            readUint64(ptr) { return p.getMemory().getBigUint64(ptr, true); },
-            readInt64(ptr) { return p.getMemory().getBigInt64(ptr, true); },
-            readUint32(ptr) { return p.getMemory().getUint32(ptr, true); },
-            readInt32(ptr) { return p.getMemory().getInt32(ptr, true); },
-            readUint16(ptr) { return p.getMemory().getUint16(ptr, true); },
-            readInt16(ptr) { return p.getMemory().getInt16(ptr, true); },
-            readUint8(ptr) { return p.getMemory().getUint8(ptr); },
-            readInt8(ptr) { return p.getMemory().getInt8(ptr); },
-            writeUint64(ptr, value) { return p.getMemory().setBigUint64(ptr, value, true); },
-            writeInt64(ptr, value) { return p.getMemory().setBigInt64(ptr, value, true); },
-            writeUint32(ptr, value) { return p.getMemory().setUint32(ptr, value, true); },
-            writeInt32(ptr, value) { return p.getMemory().setInt32(ptr, value, true); },
-            writeUint16(ptr, value) { return p.getMemory().setUint16(ptr, value, true); },
-            writeInt16(ptr, value) { return p.getMemory().setInt16(ptr, value, true); },
-            writeUint8(ptr, value) { return p.getMemory().setUint8(ptr, value); },
-            writeInt8(ptr, value) { return p.getMemory().setInt8(ptr, value); },
-            // TODO on both of these
-            readPointer(ptr) { return p.getMemory().getUint32(ptr, true); },
-            getPointerSize() { return 4; },
-            dispatchEvent(e) { return dispatchEvent(e); }
-        };
-        wasmInstance.then(({ instance, module }) => {
-            p.instance = instance;
-            p.module = module;
-            debugger;
-            console.assert(("_initialize" in p.instance.exports) != "_start" in p.instance.exports);
-            if ("_initialize" in p.instance.exports) {
-                p.instance.exports._initialize();
-            }
-            else if ("_start" in p.instance.exports) {
-                p.instance.exports._start();
-            }
-            resolve();
-        });
-        // All the functions we've been passed were imported and haven't been bound yet.
-        // Return a new object with each member bound to the private information we pass around.
-        const wasi_snapshot_preview1 = Object.fromEntries(Object.entries(base.wasi_snapshot_preview1).map(([key, func]) => { return [key, func.bind(p)]; }));
-        const env = Object.fromEntries(Object.entries(base.env).map(([key, func]) => { return [key, func.bind(p)]; }));
-        return {
-            imports: { wasi_snapshot_preview1, env },
-            // Until this resolves, no WASI functions can be called (and by extension no w'asm exports can be called)
-            // It resolves immediately after the input promise to the instance&module resolves
-            wasiReady: new Promise((res) => { resolve = res; })
-        };
-    }
-
-    var wasi = {
-    	wasi_snapshot_preview1: {
-	proc_exit,
-	fd_write,
-	fd_close,
-	fd_seek,
-	fd_read,
-	environ_sizes_get,
-	environ_get,
-    	},
-    	env: {
-	/* Omitted __throw_exception_with_stack_trace */
-    	}
-    };
-
-    let instantiated = false;
     // An alias for instance.exports
     let allExports;
 
-    // An ArrayBuffer representing the memory the current instance's module was compiled with and is currently running
-    // (Emscripten compiles with 0x1_00_00_00 bytes of memory by default)
-    let memory;
-
     // This is a promise that resolves to the WASM module **before WASI is initialized**.
     // WASI needs it to initialize itself; it shouldn't be used for any other purpose.
-    const { promise, resolve, reject } = Promise.withResolvers();
-
-    // Call this to wait until the wasmResponse has been fetched, parsed, and instantiated
-    // and, more importantly, allExports, module, and instance will have values.
-    async function untilReady() {
-    	if (!instantiated) {
-    		instantiated = true;
-    		const { wasiReady, imports } = instantiateWasi(promise, wasi);
-    		let resolved;
-    		if (globalThis.Response && data instanceof globalThis.Response)
-    			resolved = await WebAssembly.instantiateStreaming(data, { ...imports });
-    		else
-    			resolved = await WebAssembly.instantiate(data, { ...imports });
-
-    		resolve(resolved);
-    		await wasiReady;
-
-    		resolved.module;
-    		resolved.instance;
-    		allExports = resolved.instance.exports;
-    		memory = allExports.memory;
-    		allExports._initialize();
-    	}
-    }
+    Promise.withResolvers();
 
     const utf16Decoder = new TextDecoder("utf-16");
     function readStrC16(buffer, ptr, maxLength = -1) {
@@ -565,9 +387,9 @@
     import "./core/src/qrcode/QRWriter.cpp";
     */
     (async () => {
-        await untilReady();
+        await allExports.__untilReady();
         let ptr = allExports.bar2();
-        let str = readStrC16(memory.buffer, ptr);
+        let str = readStrC16(allExports.__memory.buffer, ptr);
         console.log(str);
         allExports.foo();
     })();
