@@ -598,8 +598,8 @@ function getHeapI16() { return new Int16Array(memory.buffer); }
 function getHeapU16() { return new Uint16Array(memory.buffer); }
 function getHeapI32() { return new Int32Array(memory.buffer); }
 function getHeapU32() { return new Uint32Array(memory.buffer); }
-function getHeapI64() { return new Int64Array(memory.buffer); }
-function getHeapU64() { return new Uint64Array(memory.buffer); }
+function getHeapI64() { return new BigInt64Array(memory.buffer); }
+function getHeapU64() { return new BigUint64Array(memory.buffer); }
 function getHeapF32() { return new Float32Array(memory.buffer); }
 function getHeapF64() { return new Float64Array(memory.buffer); }
 
