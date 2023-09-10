@@ -50,15 +50,18 @@ export interface PluginCppOptions {
 
     wasiLib?: string;
 
+    noWat?: boolean;
+
     useTopLevelAwait?: boolean;
 }
 
-function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait, memorySizes, defaultExeName }: Partial<PluginCppOptions> = {}): InputPluginOption {
+function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait, memorySizes, defaultExeName, noWat }: Partial<PluginCppOptions> = {}): InputPluginOption {
     memorySizes ??= {};
     includePaths ||= [];
     wasiLib ||= "basic-event-wasi";
     buildMode ||= "release";
     useTopLevelAwait ||= false;
+    const writeWat = !noWat;
 
     let projectDir = process.cwd();
 
@@ -161,7 +164,7 @@ ${knownEnv.map(fname => `\t\t${fname}, \t \t /** __@WASM_IMPORT_OMITTABLE__ **/`
                 return (
                     `
 // Import the WASM file from an external file, and wait on its response
-import wasmResponse from ${JSON.stringify(`datafile:~/${executionUnit.finalFilePath}`)};
+import wasmResponse from ${JSON.stringify(`datafile:~/${executionUnit.finalWasmPath}`)};
 import wasi from ${JSON.stringify(VMOD_THAT_EXPORTS_WASI_FUNCTIONS + executionUnit.uniqueId)}
 import { instantiateWasi } from "basic-event-wasi"
 
@@ -422,7 +425,7 @@ export {
         },
         async buildEnd() {
             // Write all the WASM modules
-            await Promise.all([...allExeUnits.executionUnitsById].map(([_id, unit]) => { return unit.compile() }));
+            await Promise.all([...allExeUnits.executionUnitsById].map(([_id, unit]) => { return unit.compile(writeWat) }));
 
         },
     };

@@ -7,8 +7,9 @@ export interface PluginCppOptions {
     memorySizes?: Partial<Record<string, number>>;
     buildMode?: "debug" | "release";
     wasiLib?: string;
+    noWat?: boolean;
     useTopLevelAwait?: boolean;
 }
-declare function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait, memorySizes, defaultExeName }?: Partial<PluginCppOptions>): InputPluginOption;
+declare function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait, memorySizes, defaultExeName, noWat }?: Partial<PluginCppOptions>): InputPluginOption;
 export default pluginCpp;
 export { pluginCpp };

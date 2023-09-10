@@ -59,7 +59,8 @@ export declare class ExecutionUnit {
      */
     addImportFromJs(str: string): void;
     get includePathsAsArgument(): string;
-    get finalFilePath(): string;
+    get finalWasmPath(): string;
+    get finalWatPath(): string;
     /**
      * Does a few things:
      *
@@ -70,7 +71,7 @@ export declare class ExecutionUnit {
      *
      * @returns
      */
-    compile(): Promise<{
+    compile(writeWat: boolean): Promise<{
         binaryen: any;
         id: number;
     }>;
@@ -89,7 +90,9 @@ declare class CppSourceFile {
     resolveIncludes(addWatchFile: (id: string) => void): Promise<void>;
     wasm: WasmFile;
     constructor(executionUnit: ExecutionUnit, path: string, contents: string, uniqueId: number);
+    private get basePath();
     get wasmPath(): string;
+    get watPath(): string;
     get includesPath(): string;
 }
 declare class WasmFile {

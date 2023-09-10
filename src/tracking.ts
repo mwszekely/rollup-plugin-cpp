@@ -1,13 +1,27 @@
 import { normalizePath } from "@rollup/pluginutils";
-import { mkdir } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import { MapOfSets } from "map-and-set-extensions";
 import { basename, dirname, join, relative } from "path";
 import { cwd, stdout } from "process";
 import { clearLine, cursorTo } from "readline";
 import { PluginContext, RollupOptions } from "rollup";
+import wabtPromise from "wabt";
 import { runEmscripten } from "./clang.js";
 import { getBinaryen } from "./get-binaryen.js";
 import { readFile } from "./util.js";
+
+//let parseWat!: Awaited<ReturnType<(typeof wabtPromise)>>["parseWat"];
+let readWasm!: Awaited<ReturnType<(typeof wabtPromise)>>["readWasm"];
+
+let awaitedWabt = false;
+
+// TODO: top-level await........
+let p = wabtPromise().then(w => {
+    //    parseWat = w.parseWat;
+    readWasm = w.readWasm;
+    awaitedWabt = true;
+})
+
 export const HELPER_IMPORT_FINAL_WASM_0 = "\0__WASM_IMPORT_FINAL_";
 export const HELPER_IMPORT_HANDLE_WASM_DATA = "\0__HELPER_IMPORT_HANDLE_WASM_DATA_"
 
@@ -139,7 +153,8 @@ export class ExecutionUnit {
         return this.parent.compilerOptions.includePaths.map(includePath => `-I "${includePath}"`).join(" ")
     }
 
-    get finalFilePath() { return `modules/${this.key}.wasm` }
+    get finalWasmPath() { return `modules/${this.key}.wasm` }
+    get finalWatPath() { return `modules/${this.key}.wat` }
 
     /**
      * Does a few things:
@@ -151,10 +166,14 @@ export class ExecutionUnit {
      * 
      * @returns 
      */
-    async compile() {
-        await mkdir(dirname(this.finalFilePath), { recursive: true });
+    async compile(writeWat: boolean) {
+        if (!awaitedWabt)
+            await p;
+
+        await mkdir(dirname(this.finalWasmPath), { recursive: true });
         let projectDir = cwd();
-        const finalTempPath = relative(projectDir, this.finalFilePath);
+        const finalTempPath = relative(projectDir, this.finalWasmPath);
+        const finalWatPath = relative(projectDir, this.finalWatPath);
 
 
         const argsExportedFunctions =
@@ -165,6 +184,7 @@ export class ExecutionUnit {
         let argsDebug = `-g -gdwarf-4 -gsource-map`;
         let argsRelease = `-flto -O3`;
 
+        // Used for at both compile-time and link-time
         const finalArgs: string[] = [
             this.includePathsAsArgument,
             argsShared,
@@ -183,16 +203,16 @@ export class ExecutionUnit {
             await Promise.all([...this.cppFilesByPath].map(async ([path, cppFile]) => {
                 if (cppFile.wasm.objNeedsRebuild) {
                     cppFile.wasm.objNeedsRebuild = false;
-                        let isCpp = !(path.toLowerCase().endsWith(".c"));
+                    let isCpp = !(path.toLowerCase().endsWith(".c"));
                     const emscriptenArgs: string[] = [
                         ...finalArgs,
-                        isCpp? "-std=c++20" : "-std=c2x",
+                        isCpp ? "-std=c++20" : "-std=c2x",
                         "-c",                                        // Compile only and don't link; turn this source file into a yet-to-be-linked object file.
                         `-o ${cppFile.wasmPath}`,                    // The output path of the object file
                         path                                         // The input path of the source file
                     ];
                     try {
-                        await runEmscripten(isCpp? "em++" : "emcc", emscriptenArgs.join(" "));
+                        await runEmscripten(isCpp ? "em++" : "emcc", emscriptenArgs.join(" "));
                     }
                     catch (ex) {
                         stdout.write("\n");
@@ -204,7 +224,9 @@ export class ExecutionUnit {
                     stdout.write(`Compiling to ${cppFile.wasm.path}...`);
 
                     const newData = await readFile(cppFile.wasm.path, "binary");
-
+                    //const wabtData = readWasm(newData, { exceptions: true,  });
+                    //const watData = wabtData.toText({ foldExprs: false, inlineExport: true });
+                    //await writeFile(`${cppFile.watPath}`, watData, { encoding: "utf-8" });
 
                     this.exeNeedsRebuild ||= (cppFile.wasm.contents == null || (newData.compare(new Uint8Array(cppFile.wasm.contents)) != 0));
 
@@ -225,7 +247,7 @@ export class ExecutionUnit {
             }
             else {
                 this.exeNeedsRebuild = false;
-                console.log(`${this.wasmFilesById.size == 1? "Rec" : "C"}ompiling ${this.wasmFilesById.size == 1? "the object file": this.wasmFilesById.size == 2? "both object files together" : `all ${this.wasmFilesById.size} object files together`} into the final executable...`)
+                console.log(`${this.wasmFilesById.size == 1 ? "Rec" : "C"}ompiling ${this.wasmFilesById.size == 1 ? "the object file" : this.wasmFilesById.size == 2 ? "both object files together" : `all ${this.wasmFilesById.size} object files together`} into the final executable...`)
 
                 const args = [
                     Array.from(this.wasmFilesById).map(([_id, wasm]) => wasm.path).join(" "),
@@ -237,8 +259,14 @@ export class ExecutionUnit {
                 await runEmscripten("em++", `${args}`);
                 //const finalWasmContents = await readFile(this.finalFilePath, "binary");
                 //this.parent.context!.setAssetSource(this.fileReferenceId, finalWasmContents);
-                const binaryen = await getBinaryen()
-                b = binaryen.readBinary(await readFile(finalTempPath, "binary"));
+                const binaryen = await getBinaryen();
+                const fileData = await readFile(finalTempPath, "binary");
+                if (writeWat) {
+                    const wabtData = readWasm(fileData, { exceptions: true });
+                    const watData = wabtData.toText({ foldExprs: true, inlineExport: true });
+                    await writeFile(finalWatPath, watData, { encoding: "utf-8" });
+                }
+                b = binaryen.readBinary(fileData);
 
 
                 for (let i = 0; i < b.getNumFunctions(); ++i) {
@@ -382,14 +410,21 @@ class CppSourceFile {
         this.wasm = new WasmFile(this, this.wasmPath, this.executionUnit.parent.wasmUniqueIdCounter++);
     }
 
-    get wasmPath() {
+    private get basePath() {
         let projectDir = cwd();
-        return normalizePath(join(projectDir, `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${basename(this.path)}.wasm`));
+        return normalizePath(join(projectDir, `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${basename(this.path)}`));
+    }
+
+    get wasmPath() {
+        return `${this.basePath}.wasm`;
+    }
+
+    get watPath() {
+        return `${this.basePath}.wat`;
     }
 
     get includesPath() {
-        let projectDir = cwd();
-        return normalizePath(join(projectDir, `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${basename(this.path)}.inc`));
+        return `${this.basePath}.inc`;
     }
 
 }

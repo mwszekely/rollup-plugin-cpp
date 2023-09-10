@@ -49,10 +49,9 @@ All imports also come with a few "helpers" exported under `$` (chosen because it
 * `$.instance`: The `WebAssembly.Instance` that provides all the other exports.
 * `$.module`: The `WebAssembly.Module` that instantiated the current instance.
 * `$.memory`: The ` WebAssembly.Memory` object. Do not save the buffer &mdash; it can be invalidated when memory grows.
-* `$.allExports`: An alternative way to access the exports of this module. You can also import functions directly.
+* `$.allExports`: An alternative way to access the exports of this module. You can also import functions directly, which removes the need to add `EMSCRIPTEN_KEEPALIVE`.
 
-
- like `__untilReady`, `__module`, `__instance`, and `__memory`.  `__untilReady` in particular is needed because WASM instantiation is async (and top-level await has questionable support), and it has an __uglyName because those names are [guaranteed to never conflict with one of your named exports](https://en.cppreference.com/w/cpp/language/identifiers#In_declarations) (unless you like nose demons).  The `useTopLevelAwait` option can be used to emit a top-level await before the exports, but it may result in sub-optimal output (with the benefit of not needing to call `__untilReady`, to be clear).
+ The `useTopLevelAwait` option can be used to emit a top-level await before the exports, but it may result in sub-optimal output (with the benefit of not needing to call `$.untilInstantiated`, to be clear).
 
 ```typescript
 import { $, returnsAPointer } from "literally-any-cpp-source-file.cpp";
@@ -69,11 +68,12 @@ Yes.
 But some notable ones:
 
 * Emscripten needs to be installed globally, available on your system's PATH. [I'm not aware of any official NPM Emscripten ports](https://github.com/emscripten-core/emscripten/issues/5774).
-* Embind causes mysterious linker errors due to missing imports in the final executable, even with the `-lembind` linker flag at every step. So everything's gotta be C-linkage and deal with simple parameters/return types.
-  * Instead of C-linkage, you can also do `__attribute__((export_name("MyExportedFunctionName")))`, but the simple types thing is still a problem.
+* Embind causes mysterious linker errors due to missing imports in the final executable, even with the `-lembind` linker flag at every step. So everything's gotta be C-linkage and deal with simple parameters/return types. No exporting function overloads, templates, classes, etc. (though they can still be used, of course).
+    * Instead of C-linkage, you can also do `__attribute__((export_name("MyExportedFunctionName")))`, but the simple types thing is still a problem. Exported templates will just never be a thing.
 * The error reporting is real bad if there's a C++ syntax error or missing include file or other simple things like that. Sleuthing's required to figure out what goes wrong.
 * No way to customize options passed to Emscripten yet (so no options to link with pre-built libraries, you gotta build 'em yourself).
 * Basically the only parts of the WASI implemented are the bare essentials (the bits that'll get you `printf` and `assert` and `std::vector` and such). Anything else will probably fail to link.
+* Some extra directories get added to your project root: `temp` (where we put `.inc` files, and individual `.obj` files), and `modules`, where the final compiled binary goes before being copied into the build directory by `Rollup` (as it needs somewhere to copy *from*).
 * Auto-generating the Typescript declaration file for a given C++ file would most likely require a herculean amount of effort hooking into the Emscripten runtime, so it's all gotta be written out by hand.
 * "Where's the debug dwarf sourcemap info to debug with source maps in the debugger"? Where is the debug sworce dwarfmap indeed.
 
@@ -99,10 +99,10 @@ Because I'm surprised I couldn't find something like this already. I figure ther
 
 This is my list of Bad Consequences™ so far:
 
-1. If a C/C++ project **requires** a build tool like CMake in order to build, it won't work. If each file can be compiled individually, as is usually the case, it will probably work fine though.
+1. If a C/C++ project **requires** a build tool like CMake in order to build, it won't work. If each file can be compiled individually, as is usually the case for libraries, it will probably work fine though.
 2. You gotta import every `.cpp` or `.c` source file individually. It's a bit of a pain but the linker will optimize out whatever isn't used, so it doesn't cause any bloat (aside from global/`static`/`thread_local` variables).
 3. Bundling Javascript code is already on the sluggish side, and now we've gotta throw in C++ code compilation and optimization... Be sure to use watch mode as appropriate.
-4. C/C++ code is already notoriously finnicky to compile, so by not providing the pre-compiled WASM binary it's just another "it works fine on my machine" waiting to happen.
+4. C/C++ code is likewise already notoriously finnicky to compile, so by not providing the pre-compiled WASM binary it's just another "it works fine on my machine" waiting to happen.
 
 But also, see above for some of the non-limitations, because they're cool too.
 

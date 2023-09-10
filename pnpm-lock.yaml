@@ -22,7 +22,7 @@ dependencies:
     version: 8.2.0
   basic-event-wasi:
     specifier: github:mwszekely/basic-event-wasi
-    version: github.com/mwszekely/basic-event-wasi/86de5a20843df629ea5890e4a0e134316bd70ba7
+    version: github.com/mwszekely/basic-event-wasi/908bd5b06c5f8ea3e2a55275add6c0813875c568
   binaryen:
     specifier: ^114.0.0
     version: 114.0.0
@@ -37,7 +37,7 @@ dependencies:
     version: 3.28.1
   rollup-plugin-data:
     specifier: github:mwszekely/rollup-plugin-data
-    version: github.com/mwszekely/rollup-plugin-data/974a46be9e18ff04fdc37ff7d804d92e02d2f8ad(rollup@3.28.1)
+    version: github.com/mwszekely/rollup-plugin-data/20ee0a13c22498645e0be0c442a2d4aeb976e8a6(rollup@3.28.1)
   setup-cpp:
     specifier: ^0.33.0
     version: 0.33.0
@@ -50,6 +50,9 @@ dependencies:
   typescript:
     specifier: ^5.1.6
     version: 5.2.2
+  wabt:
+    specifier: ^1.0.32
+    version: 1.0.32
 
 devDependencies:
   '@rollup/plugin-typescript':
@@ -883,6 +886,11 @@ packages:
     engines: {node: '>= 0.8'}
     dev: true
 
+  /wabt@1.0.32:
+    resolution: {integrity: sha512-1aHvkKaSrrl7qFtAbQ1RWVHLuJApRh7PtUdYvRtiUEKEhk0MOV0sTuz5cLF6jL5jPLRyifLbZcR65AEga/xBhQ==}
+    hasBin: true
+    dev: false
+
   /which@2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
     engines: {node: '>= 8'}
@@ -912,8 +920,8 @@ packages:
     engines: {node: '>=6'}
     dev: false
 
-  github.com/mwszekely/basic-event-wasi/86de5a20843df629ea5890e4a0e134316bd70ba7:
-    resolution: {tarball: https://codeload.github.com/mwszekely/basic-event-wasi/tar.gz/86de5a20843df629ea5890e4a0e134316bd70ba7}
+  github.com/mwszekely/basic-event-wasi/908bd5b06c5f8ea3e2a55275add6c0813875c568:
+    resolution: {tarball: https://codeload.github.com/mwszekely/basic-event-wasi/tar.gz/908bd5b06c5f8ea3e2a55275add6c0813875c568}
     name: basic-event-wasi
     version: 1.0.0
     dependencies:
@@ -931,9 +939,9 @@ packages:
       tslib: 2.6.2
     dev: false
 
-  github.com/mwszekely/rollup-plugin-data/974a46be9e18ff04fdc37ff7d804d92e02d2f8ad(rollup@3.28.1):
-    resolution: {tarball: https://codeload.github.com/mwszekely/rollup-plugin-data/tar.gz/974a46be9e18ff04fdc37ff7d804d92e02d2f8ad}
-    id: github.com/mwszekely/rollup-plugin-data/974a46be9e18ff04fdc37ff7d804d92e02d2f8ad
+  github.com/mwszekely/rollup-plugin-data/20ee0a13c22498645e0be0c442a2d4aeb976e8a6(rollup@3.28.1):
+    resolution: {tarball: https://codeload.github.com/mwszekely/rollup-plugin-data/tar.gz/20ee0a13c22498645e0be0c442a2d4aeb976e8a6}
+    id: github.com/mwszekely/rollup-plugin-data/20ee0a13c22498645e0be0c442a2d4aeb976e8a6
     name: rollup-plugin-data
     version: 1.0.0
     dependencies:

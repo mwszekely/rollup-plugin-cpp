@@ -12,6 +12,7 @@ var child_process = require('child_process');
 var mapAndSetExtensions = require('map-and-set-extensions');
 var process$1 = require('process');
 var readline = require('readline');
+var wabtPromise = require('wabt');
 
 let hasShownEmscriptenBanner = false;
 async function runProgram(prog, args, { returnsStdout } = {}) {
@@ -98,6 +99,15 @@ function getDatafilePlugin(options) {
     return null;
 }
 
+//let parseWat!: Awaited<ReturnType<(typeof wabtPromise)>>["parseWat"];
+let readWasm;
+let awaitedWabt = false;
+// TODO: top-level await........
+let p = wabtPromise().then(w => {
+    //    parseWat = w.parseWat;
+    readWasm = w.readWasm;
+    awaitedWabt = true;
+});
 const HELPER_IMPORT_FINAL_WASM_0 = "\0__WASM_IMPORT_FINAL_";
 // Basically just a wrapper around a Map<>
 class ExecutionUnits {
@@ -205,7 +215,8 @@ class ExecutionUnit {
     get includePathsAsArgument() {
         return this.parent.compilerOptions.includePaths.map(includePath => `-I "${includePath}"`).join(" ");
     }
-    get finalFilePath() { return `modules/${this.key}.wasm`; }
+    get finalWasmPath() { return `modules/${this.key}.wasm`; }
+    get finalWatPath() { return `modules/${this.key}.wat`; }
     /**
      * Does a few things:
      *
@@ -216,15 +227,19 @@ class ExecutionUnit {
      *
      * @returns
      */
-    async compile() {
-        await promises.mkdir(path.dirname(this.finalFilePath), { recursive: true });
+    async compile(writeWat) {
+        if (!awaitedWabt)
+            await p;
+        await promises.mkdir(path.dirname(this.finalWasmPath), { recursive: true });
         let projectDir = process$1.cwd();
-        const finalTempPath = path.relative(projectDir, this.finalFilePath);
+        const finalTempPath = path.relative(projectDir, this.finalWasmPath);
+        const finalWatPath = path.relative(projectDir, this.finalWatPath);
         const argsExportedFunctions = this.importsFromJs == null ? "-sLINKABLE=1 -sEXPORT_ALL=2" :
             (this.importsFromJs.size ? `-sEXPORTED_FUNCTIONS=${[...this.importsFromJs].map(i => `_${i}`).join(",")}` : "");
         let argsShared = "--no-entry -fwasm-exceptions -sALLOW_MEMORY_GROWTH=1"; // -sSTANDALONE_WASM=1  // -sMINIMAL_RUNTIME=2
         let argsDebug = `-g -gdwarf-4 -gsource-map`;
         let argsRelease = `-flto -O3`;
+        // Used for at both compile-time and link-time
         const finalArgs = [
             this.includePathsAsArgument,
             argsShared,
@@ -261,6 +276,9 @@ class ExecutionUnit {
                     readline.cursorTo(process$1.stdout, 0, undefined);
                     process$1.stdout.write(`Compiling to ${cppFile.wasm.path}...`);
                     const newData = await readFile(cppFile.wasm.path, "binary");
+                    //const wabtData = readWasm(newData, { exceptions: true,  });
+                    //const watData = wabtData.toText({ foldExprs: false, inlineExport: true });
+                    //await writeFile(`${cppFile.watPath}`, watData, { encoding: "utf-8" });
                     this.exeNeedsRebuild || (this.exeNeedsRebuild = cppFile.wasm.contents == null || (newData.compare(new Uint8Array(cppFile.wasm.contents)) != 0));
                     cppFile.wasm.contents = newData;
                     ++count;
@@ -288,7 +306,13 @@ class ExecutionUnit {
                 //const finalWasmContents = await readFile(this.finalFilePath, "binary");
                 //this.parent.context!.setAssetSource(this.fileReferenceId, finalWasmContents);
                 const binaryen = await getBinaryen();
-                b = binaryen.readBinary(await readFile(finalTempPath, "binary"));
+                const fileData = await readFile(finalTempPath, "binary");
+                if (writeWat) {
+                    const wabtData = readWasm(fileData, { exceptions: true });
+                    const watData = wabtData.toText({ foldExprs: true, inlineExport: true });
+                    await promises.writeFile(finalWatPath, watData, { encoding: "utf-8" });
+                }
+                b = binaryen.readBinary(fileData);
                 for (let i = 0; i < b.getNumFunctions(); ++i) {
                     const func = binaryen.getFunctionInfo((b.getFunctionByIndex(i)));
                     if (func.module) {
@@ -406,13 +430,18 @@ class CppSourceFile {
         this.includePaths = new Set();
         this.wasm = new WasmFile(this, this.wasmPath, this.executionUnit.parent.wasmUniqueIdCounter++);
     }
-    get wasmPath() {
+    get basePath() {
         let projectDir = process$1.cwd();
-        return pluginutils.normalizePath(path.join(projectDir, `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${path.basename(this.path)}.wasm`));
+        return pluginutils.normalizePath(path.join(projectDir, `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${path.basename(this.path)}`));
+    }
+    get wasmPath() {
+        return `${this.basePath}.wasm`;
+    }
+    get watPath() {
+        return `${this.basePath}.wat`;
     }
     get includesPath() {
-        let projectDir = process$1.cwd();
-        return pluginutils.normalizePath(path.join(projectDir, `./temp/${this.uniqueId.toString(16).padStart(2, "0")}_${path.basename(this.path)}.inc`));
+        return `${this.basePath}.inc`;
     }
 }
 class WasmFile {
@@ -448,12 +477,13 @@ const VMOD_THAT_EXPORTS_WASI_FUNCTIONS = `\0C++_PLUGIN_WASI_`;
  * It's responsible for importing and instantiating the WASM module from its URL.
  */
 const WASM_LOADER = `\0C++_PLUGIN_WASM_`;
-function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait, memorySizes, defaultExeName } = {}) {
+function pluginCpp({ includePaths, buildMode, wasiLib, useTopLevelAwait, memorySizes, defaultExeName, noWat } = {}) {
     memorySizes !== null && memorySizes !== void 0 ? memorySizes : (memorySizes = {});
     includePaths || (includePaths = []);
     wasiLib || (wasiLib = "basic-event-wasi");
     buildMode || (buildMode = "release");
     useTopLevelAwait || (useTopLevelAwait = false);
+    const writeWat = !noWat;
     let projectDir = process.cwd();
     let allExeUnits = null;
     let options = null;
@@ -541,7 +571,7 @@ ${knownEnv.map(fname => `\t\t${fname}, \t \t /** __@WASM_IMPORT_OMITTABLE__ **/`
                 // and I honestly have no clue how to normalize that in Node.
                 return (`
 // Import the WASM file from an external file, and wait on its response
-import wasmResponse from ${JSON.stringify(`datafile:~/${executionUnit.finalFilePath}`)};
+import wasmResponse from ${JSON.stringify(`datafile:~/${executionUnit.finalWasmPath}`)};
 import wasi from ${JSON.stringify(VMOD_THAT_EXPORTS_WASI_FUNCTIONS + executionUnit.uniqueId)}
 import { instantiateWasi } from "basic-event-wasi"
 
@@ -784,7 +814,7 @@ export {
         },
         async buildEnd() {
             // Write all the WASM modules
-            await Promise.all([...allExeUnits.executionUnitsById].map(([_id, unit]) => { return unit.compile(); }));
+            await Promise.all([...allExeUnits.executionUnitsById].map(([_id, unit]) => { return unit.compile(writeWat); }));
         },
     };
 }
