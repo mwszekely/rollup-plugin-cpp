@@ -1,6 +1,7 @@
 export interface RunProgramArgs {
     returnsStdout: boolean;
 }
+export declare function tryShowBanner(): void;
 export declare function runEmscripten(mode: "emcc" | "em++", args: string, opts?: Partial<RunProgramArgs>): Promise<string | void>;
 export declare const testA = "";
 export declare const $testA = "";

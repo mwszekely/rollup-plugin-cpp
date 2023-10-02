@@ -10,7 +10,10 @@ import { cwd, stdout } from 'process';
 import { clearLine, cursorTo } from 'readline';
 import wabtPromise from 'wabt';
 
-let hasShownEmscriptenBanner = false;
+// This is to avoid showing the emcc banner when we just call it for --version (to see if it exists).
+// We want to only show it if we use emcc to compile something.
+let banner = "";
+let shownBanner = false;
 async function runProgram(prog, args, { returnsStdout } = {}) {
     returnsStdout || (returnsStdout = false);
     let resolve;
@@ -18,6 +21,7 @@ async function runProgram(prog, args, { returnsStdout } = {}) {
     let promise = new Promise((res, rej) => { resolve = res; reject = rej; });
     let allStdOut = new Array();
     const cb = (error, stdout, stderr) => {
+        if (stdout.startsWith("emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld)")) ;
         if (error) {
             const result = /^wasm-ld: error: ((.+?):\s+(.+?):\s+(.+))/.exec(stderr);
             if (result) {
@@ -33,10 +37,8 @@ async function runProgram(prog, args, { returnsStdout } = {}) {
         }
         if (stdout != null && stdout != "") {
             if (stdout.startsWith("emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld)") && stdout.includes("This is free and open source software under the MIT license.")) {
-                if (!hasShownEmscriptenBanner) {
-                    hasShownEmscriptenBanner = true;
-                    allStdOut.push(stdout);
-                }
+                banner = stdout;
+                return;
             }
             else {
                 allStdOut.push(stdout);
@@ -58,6 +60,12 @@ async function runProgram(prog, args, { returnsStdout } = {}) {
     if (allStdOut.length)
         console.log(...allStdOut);
     return ret;
+}
+function tryShowBanner() {
+    if (!shownBanner) {
+        shownBanner = true;
+        console.log(banner);
+    }
 }
 async function runEmscripten(mode, args, opts = {}) {
     return runProgram(mode, `${args}`, opts);
@@ -242,12 +250,10 @@ class ExecutionUnit {
             (this.parent.buildMode == "debug" ? argsDebug : argsRelease)
         ];
         let b;
-        if (this.cppFilesByPath.size == 0) {
-            console.log(`No C++ files were imported. Nothing to compile...`);
-        }
+        if (this.cppFilesByPath.size == 0) ;
         else {
             //let maxLen = 0;
-            console.log(`Compiling individual C++ files to object files...`);
+            //console.log(`Compiling individual C++ files to object files...`);
             let count = 0;
             await Promise.all([...this.cppFilesByPath].map(async ([path, cppFile]) => {
                 if (cppFile.wasm.objNeedsRebuild) {
@@ -261,6 +267,7 @@ class ExecutionUnit {
                         path // The input path of the source file
                     ];
                     try {
+                        tryShowBanner();
                         await runEmscripten(isCpp ? "em++" : "emcc", emscriptenArgs.join(" "));
                     }
                     catch (ex) {
@@ -286,9 +293,7 @@ class ExecutionUnit {
             clearLine(stdout, 0);
             cursorTo(stdout, 0, undefined);
             stdout.write(`Compiled ${count}/${this.cppFilesByPath.size} source files.\n`);
-            if (!this.exeNeedsRebuild) {
-                console.log(`There were no changes to the individual .wasm files, so the final file does not need rebuilt.`);
-            }
+            if (!this.exeNeedsRebuild) ;
             else {
                 this.exeNeedsRebuild = false;
                 console.log(`${this.wasmFilesById.size == 1 ? "Rec" : "C"}ompiling ${this.wasmFilesById.size == 1 ? "the object file" : this.wasmFilesById.size == 2 ? "both object files together" : `all ${this.wasmFilesById.size} object files together`} into the final executable...`);
@@ -298,6 +303,7 @@ class ExecutionUnit {
                     ...finalArgs,
                     argsExportedFunctions,
                 ].join(" ");
+                tryShowBanner();
                 await runEmscripten("em++", `${args}`);
                 //const finalWasmContents = await readFile(this.finalFilePath, "binary");
                 //this.parent.context!.setAssetSource(this.fileReferenceId, finalWasmContents);
@@ -386,6 +392,7 @@ class ExecutionUnit {
 }
 class CppSourceFile {
     async resolveIncludes(addWatchFile) {
+        tryShowBanner();
         (await runEmscripten("em++", "-E -H " + this.path + ` ${this.executionUnit.includePathsAsArgument} -o ` + this.includesPath));
         const b = await readFile(this.includesPath, "string");
         const includes = new Set(b

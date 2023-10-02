@@ -1,8 +1,10 @@
 import { ExecException, exec } from "child_process";
-
-let hasShownEmscriptenBanner = false;
-
 export interface RunProgramArgs { returnsStdout: boolean }
+
+// This is to avoid showing the emcc banner when we just call it for --version (to see if it exists).
+// We want to only show it if we use emcc to compile something.
+let banner = "";
+let shownBanner = false;
 
 async function runProgram(prog: string, args: string, { returnsStdout }: Partial<RunProgramArgs> = {}) {
     returnsStdout ||= false;
@@ -13,6 +15,8 @@ async function runProgram(prog: string, args: string, { returnsStdout }: Partial
 
     let allStdOut = new Array<string>();
     const cb = (error: ExecException | null, stdout: string, stderr: string) => {
+        if (stdout.startsWith("emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld)")) {
+        }
         if (error) {
             const result = /^wasm-ld: error: ((.+?):\s+(.+?):\s+(.+))/.exec(stderr);
             if (result) {
@@ -28,10 +32,8 @@ async function runProgram(prog: string, args: string, { returnsStdout }: Partial
         }
         if (stdout != null && stdout != "") {
             if (stdout.startsWith("emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld)") && stdout.includes("This is free and open source software under the MIT license.")) {
-                if (!hasShownEmscriptenBanner) {
-                    hasShownEmscriptenBanner = true;
-                    allStdOut.push(stdout);
-                }
+                banner = stdout;
+                return;
             }
             else {
                 allStdOut.push(stdout);
@@ -56,6 +58,13 @@ async function runProgram(prog: string, args: string, { returnsStdout }: Partial
     if (allStdOut.length)
         console.log(...allStdOut);
     return ret;
+}
+
+export function tryShowBanner() {
+    if (!shownBanner) {
+        shownBanner = true;
+        console.log(banner);
+    }
 }
 
 export async function runEmscripten(mode: "emcc" | "em++", args: string, opts: Partial<RunProgramArgs> = {}) {

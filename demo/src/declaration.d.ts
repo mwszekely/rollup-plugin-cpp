@@ -4,6 +4,12 @@
 //}
 
 
+declare module "*/helpers.wasm" {
+    const $: CppMeta;
+    function strLenC16(ptr: PointerOpaque): number;
+    function strLenC16N(ptr: PointerOpaque, maxLength: number): number;
+}
+
 declare module "*/helpers.cpp" {
     // TODO:
     import type { CppMeta } from "rollup-plugin-cpp";
@@ -26,6 +32,11 @@ declare module "*/helpers.cpp" {
     function strLenC16N(ptr: PointerOpaque, maxLength: number): number;
 }
 
+
+declare module "*/test.wasm" {
+    function foo(): string;
+    function bar2(): number;
+}
 
 declare module "*/test.cpp" {
     function foo(): string;

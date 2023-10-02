@@ -14,7 +14,6 @@ export async function foo() {
     let ptr = 0;//bar2();
     let str = readStrC16($.memory.buffer, ptr);
 
-    //let strMemory = new Uint16Array((instance.exports.memory as WebAssembly.Memory).buffer).slice(ptr / 2);
 
     console.log(str);
 }

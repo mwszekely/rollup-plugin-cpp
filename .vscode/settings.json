@@ -64,5 +64,8 @@
         "functional": "cpp",
         "xhash": "cpp",
         "xtree": "cpp"
-    }
+    },
+    "cSpell.words": [
+        "datafile"
+    ]
 }

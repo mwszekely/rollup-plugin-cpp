@@ -17,7 +17,8 @@
                 "ts-node/esm",
             ],
             "args": [
-                "${workspaceFolder}/demo/start.ts"
+                "${workspaceFolder}/demo/start.ts",
+                "--watch"
             ]
         }
     ]
